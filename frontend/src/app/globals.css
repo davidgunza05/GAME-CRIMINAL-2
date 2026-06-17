@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-crime-black text-crime-text-primary font-serif;
+    min-height: 100vh;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-crime-surface; }
+  ::-webkit-scrollbar-thumb { @apply bg-crime-muted rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-crime-red; }
+
+  /* Focus ring */
+  :focus-visible {
+    @apply outline-none ring-2 ring-crime-red ring-offset-2 ring-offset-crime-black;
+  }
+
+  /* Selection */
+  ::selection { @apply bg-crime-red text-white; }
+}
+
+@layer components {
+  /* ─── Form inputs ─────────────────────────────── */
+  .input {
+    @apply w-full bg-crime-black border border-crime-border rounded-md
+           px-4 py-3 text-sm text-crime-text-primary placeholder-crime-text-faint
+           transition-colors duration-200
+           focus:outline-none focus:ring-1 focus:ring-crime-red focus:border-crime-red;
+  }
+
+  .input-error {
+    @apply border-red-500 focus:ring-red-500 focus:border-red-500;
+  }
+
+  /* ─── Buttons ─────────────────────────────────── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2
+           px-5 py-3 rounded-md text-sm font-medium
+           transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
+           focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-crime-black;
+  }
+
+  .btn-primary {
+    @apply btn bg-crime-red text-white hover:bg-red-700
+           focus:ring-crime-red active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply btn bg-crime-surface border border-crime-border text-crime-text-secondary
+           hover:border-crime-red hover:text-crime-text-primary
+           focus:ring-crime-border;
+  }
+
+  .btn-ghost {
+    @apply btn text-crime-text-muted hover:text-crime-text-primary hover:bg-crime-surface;
+  }
+
+  .btn-danger {
+    @apply btn bg-red-900 text-red-200 hover:bg-red-800 focus:ring-red-700;
+  }
+
+  /* ─── Cards ───────────────────────────────────── */
+  .card {
+    @apply bg-crime-surface border border-crime-border rounded-lg;
+  }
+
+  .card-elevated {
+    @apply card shadow-crime;
+  }
+
+  /* ─── Labels ──────────────────────────────────── */
+  .label {
+    @apply block text-xs font-medium text-crime-text-muted uppercase tracking-widest mb-2;
+  }
+
+  /* ─── Error text ──────────────────────────────── */
+  .field-error {
+    @apply text-xs text-red-400 mt-1.5 flex items-center gap-1;
+  }
+
+  /* ─── Badge ───────────────────────────────────── */
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold tracking-wide uppercase;
+  }
+
+  .badge-admin     { @apply badge bg-crime-red text-white; }
+  .badge-organizer { @apply badge bg-purple-900 text-purple-200; }
+  .badge-player    { @apply badge bg-crime-muted text-crime-text-muted; }
+}
