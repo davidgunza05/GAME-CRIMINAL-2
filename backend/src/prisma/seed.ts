@@ -107,6 +107,154 @@ async function main() {
     },
   })
 
+
+  // ─── Phase 3 — Stages, Characters, Evidence ─────────────────────────────────
+  // Stages for case1
+  const stage1 = await prisma.gameStage.upsert({
+    where: { id: 'stage-intro-01' },
+    update: {},
+    create: {
+      id: 'stage-intro-01',
+      caseId: case1.id,
+      order: 1,
+      title: 'A Descoberta',
+      description: 'O corpo de Victor Aldridge foi encontrado na biblioteca da mansão. A polícia acaba de chegar.',
+      isLast: false,
+    },
+  })
+
+  const stage2 = await prisma.gameStage.upsert({
+    where: { id: 'stage-invest-02' },
+    update: {},
+    create: {
+      id: 'stage-invest-02',
+      caseId: case1.id,
+      order: 2,
+      title: 'Interrogatórios',
+      description: 'Chegou a hora de interrogar os suspeitos e verificar os álibis.',
+      isLast: false,
+    },
+  })
+
+  const stage3 = await prisma.gameStage.upsert({
+    where: { id: 'stage-final-03' },
+    update: {},
+    create: {
+      id: 'stage-final-03',
+      caseId: case1.id,
+      order: 3,
+      title: 'A Verdade',
+      description: 'Todas as pistas foram analisadas. É hora de fazer a acusação final.',
+      isLast: true,
+    },
+  })
+
+  // Characters
+  const charKiller = await prisma.character.upsert({
+    where: { id: 'char-killer-01' },
+    update: {},
+    create: {
+      id: 'char-killer-01',
+      caseId: case1.id,
+      name: 'Helena Voss',
+      description: 'Secretária pessoal de Victor há 15 anos. Discreta e eficiente.',
+      backstory: 'Helena dedicou a sua vida a Victor, mas descobriu recentemente que ele planejava reformá-la sem qualquer compensação.',
+      objectives: 'Manter a tua posição e provar que és indispensável.',
+      secrets: 'Sabes que Victor estava a mover os ativos para uma conta offshore sem o teu conhecimento.',
+      alibi: 'Estavas na cozinha a preparar os cocktails das 21h às 22h.',
+      isKiller: true,
+      isDetective: false,
+    },
+  })
+
+  const charDetective = await prisma.character.upsert({
+    where: { id: 'char-det-01' },
+    update: {},
+    create: {
+      id: 'char-det-01',
+      caseId: case1.id,
+      name: 'Inspector Ramos',
+      description: 'Detetive veterano convidado para a festa como jogo social.',
+      backstory: 'Ramos foi convidado por Victor para a festa como um desafio pessoal. Não esperava encontrar um crime real.',
+      objectives: 'Descobrir a verdade e proteger os inocentes.',
+      secrets: 'Tens suspeitas sobre Helena desde o início, mas precisas de provas.',
+      alibi: 'Estavas no salão com outros convidados durante toda a noite.',
+      isKiller: false,
+      isDetective: true,
+    },
+  })
+
+  // Evidence
+  await prisma.evidence.createMany({
+    skipDuplicates: true,
+    data: [
+      {
+        id: 'ev-01',
+        caseId: case1.id,
+        stageId: stage1.id,
+        title: 'Relatório da Autopsia',
+        description: 'Vítima envenenada com arsénio. Estimativa: 21h-22h.',
+        type: 'document',
+        contentText: 'RELATÓRIO FORENSE N.º 2024-089
+Vítima: Victor Aldridge, 67 anos
+Causa da morte: Envenenamento por arsénio
+Janela temporal: 21:00–22:00
+Nota: O veneno foi misturado numa bebida.',
+        isRedHerring: false,
+        sortOrder: 1,
+      },
+      {
+        id: 'ev-02',
+        caseId: case1.id,
+        stageId: stage1.id,
+        title: 'Copo de Whisky',
+        description: 'Copo encontrado na mesa de Victor com resíduos suspeitos.',
+        type: 'object',
+        contentText: 'Análise laboratorial: Traços de arsénio detetados. Impressões digitais: parcialmente apagadas.',
+        isRedHerring: false,
+        sortOrder: 2,
+      },
+      {
+        id: 'ev-03',
+        caseId: case1.id,
+        stageId: stage2.id,
+        title: 'Email Confidencial',
+        description: 'Email encontrado no computador de Victor.',
+        type: 'document',
+        contentText: 'Para: advogado@firma.pt
+Assunto: Rescisão de contrato
+
+Preciso de redigir uma carta de rescisão para Helena Voss. Sem indemnização. Data: amanhã.',
+        isRedHerring: false,
+        sortOrder: 3,
+      },
+      {
+        id: 'ev-04',
+        caseId: case1.id,
+        stageId: stage2.id,
+        title: 'Frasco de Perfume',
+        description: 'Frasco encontrado no quarto de um dos convidados.',
+        type: 'object',
+        contentText: 'Perfume Chanel N°5. Sem substâncias suspeitas. Pista falsa.',
+        isRedHerring: true,
+        sortOrder: 4,
+      },
+      {
+        id: 'ev-05',
+        caseId: case1.id,
+        stageId: stage3.id,
+        title: 'Registo de Compras de Helena',
+        description: 'Histórico de compras online de Helena nos últimos 30 dias.',
+        type: 'document',
+        contentText: 'Data: 15/01 — "Kit de jardinagem avançado" — loja: Jardim & Cia
+Nota interna: O kit inclui compostos de arsénio para tratamento de pragas.',
+        isRedHerring: false,
+        sortOrder: 5,
+      },
+    ],
+  })
+
+  console.log('   🎭 Stages, characters and evidence seeded for:', case1.title)
   console.log('✅ Seed complete!')
   console.log(`   👤 Admin:     admin@crimegame.com / Admin@123456`)
   console.log(`   👤 Organizer: organizer@crimegame.com / Organizer@123456`)

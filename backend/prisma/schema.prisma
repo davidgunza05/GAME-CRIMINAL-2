@@ -45,6 +45,9 @@ model User {
   tokens            UserToken[]
   refreshTokens     RefreshToken[]
   orders            Order[]
+  hostedSessions    GameSession[]  @relation("HostedSessions")
+  participations    Participant[]
+  evidenceUnlocks   EvidenceUnlock[]
 
   @@map("users")
 }
@@ -152,6 +155,10 @@ model Case {
 
   // Relations
   orderItems       OrderItem[]
+  stages           GameStage[]
+  characters       Character[]
+  evidence         Evidence[]
+  sessions         GameSession[]
 
   @@index([slug])
   @@index([isPublished])
@@ -301,4 +308,213 @@ model RefreshToken {
   @@index([userId])
   @@index([family])
   @@map("refresh_tokens")
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// FASE 3 — MOTOR DE JOGO & SESSÕES
+// ════════════════════════════════════════════════════════════════════════════
+
+enum SessionStatus {
+  pending
+  active
+  paused
+  completed
+  cancelled
+}
+
+enum SessionMode {
+  multiplayer
+  solo
+  hybrid
+}
+
+enum ParticipantStatus {
+  invited
+  confirmed
+  playing
+  left
+}
+
+enum EvidenceType {
+  document
+  photo
+  video
+  audio
+  object
+  qrcode
+}
+
+enum AccusationResult {
+  correct
+  incorrect
+  invalid
+}
+
+// ─── Game Stages ─────────────────────────────────────────────────────────────
+
+model GameStage {
+  id          String   @id @default(uuid())
+  caseId      String   @map("case_id")
+  order       Int
+  title       String
+  description String
+  isLast      Boolean  @default(false) @map("is_last")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  case        Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  evidence    Evidence[]
+  sessions    GameSession[] @relation("CurrentStage")
+
+  @@index([caseId])
+  @@map("game_stages")
+}
+
+// ─── Characters ───────────────────────────────────────────────────────────────
+
+model Character {
+  id             String   @id @default(uuid())
+  caseId         String   @map("case_id")
+  name           String
+  description    String
+  backstory      String
+  objectives     String
+  secrets        String
+  alibi          String
+  isKiller       Boolean  @default(false) @map("is_killer")
+  isDetective    Boolean  @default(false) @map("is_detective")
+  avatarUrl      String?  @map("avatar_url")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  case           Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  participants   Participant[]
+
+  accusations      Accusation[]
+
+  @@index([caseId])
+  @@map("characters")
+}
+
+// ─── Evidence ─────────────────────────────────────────────────────────────────
+
+model Evidence {
+  id           String       @id @default(uuid())
+  caseId       String       @map("case_id")
+  stageId      String?      @map("stage_id")
+  title        String
+  description  String
+  type         EvidenceType
+  contentUrl   String?      @map("content_url")
+  contentText  String?      @map("content_text")
+  isRedHerring Boolean      @default(false) @map("is_red_herring")
+  qrCode       String?      @map("qr_code")
+  sortOrder    Int          @default(0) @map("sort_order")
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  case         Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  stage        GameStage?   @relation(fields: [stageId], references: [id])
+  unlocks      EvidenceUnlock[]
+
+  @@index([caseId])
+  @@index([stageId])
+  @@map("evidence")
+}
+
+// ─── Game Sessions ────────────────────────────────────────────────────────────
+
+model GameSession {
+  id               String        @id @default(uuid())
+  caseId           String        @map("case_id")
+  hostId           String        @map("host_id")
+  status           SessionStatus @default(pending)
+  mode             SessionMode   @default(multiplayer)
+  accessCode       String        @unique @map("access_code")
+  currentStageId   String?       @map("current_stage_id")
+  scheduledAt      DateTime?     @map("scheduled_at")
+  startedAt        DateTime?     @map("started_at")
+  completedAt      DateTime?     @map("completed_at")
+  estimatedMinutes Int?          @map("estimated_minutes")
+  location         String?
+  meetingUrl       String?       @map("meeting_url")
+  notes            String?
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  case             Case          @relation(fields: [caseId], references: [id])
+  host             User          @relation("HostedSessions", fields: [hostId], references: [id])
+  currentStage     GameStage?    @relation("CurrentStage", fields: [currentStageId], references: [id])
+  participants     Participant[]
+  evidenceUnlocks  EvidenceUnlock[]
+  accusations      Accusation[]
+
+  @@index([accessCode])
+  @@index([hostId])
+  @@index([caseId])
+  @@map("game_sessions")
+}
+
+// ─── Participants ─────────────────────────────────────────────────────────────
+
+model Participant {
+  id            String            @id @default(uuid())
+  sessionId     String            @map("session_id")
+  userId        String?           @map("user_id")
+  characterId   String?           @map("character_id")
+  status        ParticipantStatus @default(invited)
+  guestName     String?           @map("guest_name")
+  guestEmail    String?           @map("guest_email")
+  guestPhone    String?           @map("guest_phone")
+  score         Int               @default(0)
+  joinedAt      DateTime?         @map("joined_at")
+  createdAt     DateTime          @default(now()) @map("created_at")
+
+  session       GameSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user          User?             @relation(fields: [userId], references: [id])
+  character     Character?        @relation(fields: [characterId], references: [id])
+  accusations   Accusation[]
+
+  @@unique([sessionId, userId])
+  @@index([sessionId])
+  @@map("participants")
+}
+
+// ─── Evidence Unlocks ─────────────────────────────────────────────────────────
+
+model EvidenceUnlock {
+  id            String      @id @default(uuid())
+  sessionId     String      @map("session_id")
+  evidenceId    String      @map("evidence_id")
+  unlockedById  String?     @map("unlocked_by_id")
+  unlockedAt    DateTime    @default(now()) @map("unlocked_at")
+
+  session       GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  evidence      Evidence    @relation(fields: [evidenceId], references: [id])
+  unlockedBy    User?       @relation(fields: [unlockedById], references: [id])
+
+  @@unique([sessionId, evidenceId])
+  @@index([sessionId])
+  @@map("evidence_unlocks")
+}
+
+// ─── Accusations ──────────────────────────────────────────────────────────────
+
+model Accusation {
+  id              String           @id @default(uuid())
+  sessionId       String           @map("session_id")
+  participantId   String           @map("participant_id")
+  suspectId       String           @map("suspect_id")
+  motive          String
+  method          String
+  evidenceCited   String[]         @map("evidence_cited")
+  result          AccusationResult @default(invalid)
+  feedbackText    String?          @map("feedback_text")
+  attemptNumber   Int              @default(1) @map("attempt_number")
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  session         GameSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  participant     Participant  @relation(fields: [participantId], references: [id])
+  suspect         Character    @relation(fields: [suspectId], references: [id])
+
+  @@index([sessionId])
+  @@index([participantId])
+  @@map("accusations")
 }

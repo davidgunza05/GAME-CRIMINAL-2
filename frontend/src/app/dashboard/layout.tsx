@@ -26,6 +26,7 @@ const adminItems = [
   { href: '/dashboard/admin', label: 'Utilizadores', icon: Shield },
   { href: '/dashboard/admin/cases', label: 'Casos', icon: ShoppingBag },
   { href: '/dashboard/admin/orders', label: 'Encomendas', icon: Package },
+  { href: '/dashboard/admin/sessions', label: 'Sessões', icon: Gamepad2 },
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

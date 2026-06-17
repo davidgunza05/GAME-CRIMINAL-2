@@ -1,5 +1,7 @@
+import http from 'http'
 import app from './app'
 import { env } from './config/env'
+import { setupSocketIO, setIO } from './sockets/game.socket'
 import { prisma } from './config/prisma'
 
 const start = async () => {
@@ -12,7 +14,12 @@ const start = async () => {
     process.exit(1)
   }
 
-  app.listen(env.PORT, () => {
+  const httpServer = http.createServer(app)
+  const io = setupSocketIO(httpServer)
+  setIO(io)
+  console.log('🔌 Socket.io initialized')
+
+  httpServer.listen(env.PORT, () => {
     console.log(`\n🔍 Crime Game API`)
     console.log(`   Mode:        ${env.NODE_ENV}`)
     console.log(`   Port:        ${env.PORT}`)
