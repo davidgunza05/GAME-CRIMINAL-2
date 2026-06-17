@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Users, Copy, Play, Shuffle, ArrowRight, Wifi, WifiOff, Loader2 } from 'lucide-react'
 import { clsx } from 'clsx'
 import toast from 'react-hot-toast'
@@ -11,8 +11,8 @@ import { useGameSocket } from '@/hooks/useGameSocket'
 import { useAuthStore } from '@/store/auth.store'
 import { GameSession } from '@/types/game'
 
-export default function LobbyPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function LobbyPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const router = useRouter()
   const { user } = useAuthStore()
   const [session, setSession] = useState<GameSession | null>(null)
