@@ -46,3 +46,9 @@
     "typescript": "^5.4.2"
   }
 }
+
+
+
+frontend/src/app/dashboard/cases/[slug]/page.tsx
+frontend/src/app/dashboard/sessions/[id]/play/page.tsx
+frontend/src/app/dashboard/layout.tsx

@@ -7,12 +7,12 @@ async function main() {
   console.log('🌱 Seeding database...')
 
   // Admin user
-  const adminPassword = await bcrypt.hash('Admin@123456', 12)
+  const adminPassword = await bcrypt.hash('Gunza17@', 12)
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@crimegame.com' },
+    where: { email: 'admin@gmail.com' },
     update: {},
     create: {
-      email: 'admin@crimegame.com',
+      email: 'admin@gmail.com',
       username: 'admin',
       passwordHash: adminPassword,
       role: UserRole.admin,
@@ -22,12 +22,12 @@ async function main() {
   })
 
   // Organizer user
-  const organizerPassword = await bcrypt.hash('Organizer@123456', 12)
+  const organizerPassword = await bcrypt.hash('Gunza17@', 12)
   const organizer = await prisma.user.upsert({
-    where: { email: 'organizer@crimegame.com' },
+    where: { email: 'organizer@gmail.com' },
     update: {},
     create: {
-      email: 'organizer@crimegame.com',
+      email: 'organizer@gmail.com',
       username: 'organizer_demo',
       passwordHash: organizerPassword,
       role: UserRole.organizer,
@@ -37,12 +37,12 @@ async function main() {
   })
 
   // Player user
-  const playerPassword = await bcrypt.hash('Player@123456', 12)
+  const playerPassword = await bcrypt.hash('Gunza17@', 12)
   const player = await prisma.user.upsert({
-    where: { email: 'player@crimegame.com' },
+    where: { email: 'player@gmail.com' },
     update: {},
     create: {
-      email: 'player@crimegame.com',
+      email: 'player@gmail.com',
       username: 'player_demo',
       passwordHash: playerPassword,
       role: UserRole.player,
@@ -195,11 +195,7 @@ async function main() {
         title: 'Relatório da Autopsia',
         description: 'Vítima envenenada com arsénio. Estimativa: 21h-22h.',
         type: 'document',
-        contentText: 'RELATÓRIO FORENSE N.º 2024-089
-Vítima: Victor Aldridge, 67 anos
-Causa da morte: Envenenamento por arsénio
-Janela temporal: 21:00–22:00
-Nota: O veneno foi misturado numa bebida.',
+        contentText: 'RELATÓRIO FORENSE N.º 2024-089 \n Vítima: Victor Aldridge, 67 anos \n Causa da morte: Envenenamento por arsénio \n Janela temporal: 21:00–22:00 \n Nota: O veneno foi misturado numa bebida.',
         isRedHerring: false,
         sortOrder: 1,
       },
@@ -221,10 +217,7 @@ Nota: O veneno foi misturado numa bebida.',
         title: 'Email Confidencial',
         description: 'Email encontrado no computador de Victor.',
         type: 'document',
-        contentText: 'Para: advogado@firma.pt
-Assunto: Rescisão de contrato
-
-Preciso de redigir uma carta de rescisão para Helena Voss. Sem indemnização. Data: amanhã.',
+        contentText: 'Para: advogado@firma.pt. \n Assunto: Rescisão de contrato. Preciso de redigir uma carta de rescisão para Helena Voss. Sem indemnização. \n Data: amanhã.',
         isRedHerring: false,
         sortOrder: 3,
       },
@@ -246,8 +239,7 @@ Preciso de redigir uma carta de rescisão para Helena Voss. Sem indemnização. 
         title: 'Registo de Compras de Helena',
         description: 'Histórico de compras online de Helena nos últimos 30 dias.',
         type: 'document',
-        contentText: 'Data: 15/01 — "Kit de jardinagem avançado" — loja: Jardim & Cia
-Nota interna: O kit inclui compostos de arsénio para tratamento de pragas.',
+        contentText: 'Data: 15/01 — "Kit de jardinagem avançado" — loja: Jardim & Cia \n Nota interna: O kit inclui compostos de arsénio para tratamento de pragas.',
         isRedHerring: false,
         sortOrder: 5,
       },
@@ -256,9 +248,9 @@ Nota interna: O kit inclui compostos de arsénio para tratamento de pragas.',
 
   console.log('   🎭 Stages, characters and evidence seeded for:', case1.title)
   console.log('✅ Seed complete!')
-  console.log(`   👤 Admin:     admin@crimegame.com / Admin@123456`)
-  console.log(`   👤 Organizer: organizer@crimegame.com / Organizer@123456`)
-  console.log(`   👤 Player:    player@crimegame.com / Player@123456`)
+  console.log(`   👤 Admin:     admin@gmail.com / Gunza17@`)
+  console.log(`   👤 Organizer: organizer@gmail.com / Gunza17@`)
+  console.log(`   👤 Player:    player@gmail.com / Gunza17@`)
 }
 
 main()

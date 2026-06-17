@@ -37,8 +37,8 @@ export default function CaseDetailPage({ params }: { params: Promise<{ slug: str
     </div>
   )
 
-  const diff = difficultyMap[c.difficulty]
-  const typeInfo = caseTypeMap[c.type]
+  const diff = difficultyMap[c.difficulty as keyof typeof difficultyMap]
+  const typeInfo = caseTypeMap[c.type as keyof typeof caseTypeMap]
 
   return (
     <div className="p-8 max-w-5xl">

@@ -63,6 +63,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               Crime Game
             </span>
           </Link>
+          </div>
         </div>
 
         {/* User info */}

@@ -274,10 +274,13 @@ export default function PlayPage({ params }: { params: Promise<{ id: string }> }
     </div>
   )
 
+  /**
+   *   
   function handleSendChat() {
     if (!chatInput.trim()) return
     sendChat(chatInput)
     setChatMessages((prev) => [...prev, { username: user?.username ?? 'Tu', message: chatInput.trim(), timestamp: new Date().toISOString() }])
     setChatInput('')
   }
+   */
 }
