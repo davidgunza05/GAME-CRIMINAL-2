@@ -8,8 +8,8 @@ import { useCartStore } from '@/store/cart.store'
 import { difficultyMap, caseTypeMap, formatPrice, formatDuration } from '@/lib/shop.utils'
 import toast from 'react-hot-toast'
 
-export default function CaseDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = use(params)
+export default function CaseDetailPage({ params }: { params: { slug: string } }) {
+  const { slug } = params
   const { data: c, isLoading } = useCaseBySlug(slug)
   const addItem = useCartStore((s) => s.addItem)
 

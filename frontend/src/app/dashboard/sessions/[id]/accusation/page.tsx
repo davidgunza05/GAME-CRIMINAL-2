@@ -17,8 +17,10 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
-export default function AccusationPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+ 
+export default function AccusationPage({ params }: { params: { id: string } }) {
+  const { id } = params
+
   const [lastResult, setLastResult] = useState<{ result: string; feedbackText: string } | null>(null)
 
   const { data: session } = useSession(id)

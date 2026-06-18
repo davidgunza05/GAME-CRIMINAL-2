@@ -17,8 +17,9 @@ const evidenceIcons: Record<EvidenceType, React.ElementType> = {
   video: Video, object: Box, qrcode: QrCode,
 }
 
-export default function PlayPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function PlayPage({ params }: { params: { id: string } }) {
+  const { id } = params
+
   const router = useRouter()
   const { user } = useAuthStore()
 

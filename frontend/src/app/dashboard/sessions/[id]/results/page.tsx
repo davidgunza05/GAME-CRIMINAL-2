@@ -7,8 +7,10 @@ import { clsx } from 'clsx'
 import { useSessionResults } from '@/hooks/useSession'
 import { formatDate, difficultyMap } from '@/lib/shop.utils'
 
-export default function ResultsPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+
+export default function ResultsPage({ params }: { params: { id: string } }) {
+  const { id } = params
+
   const { data, isLoading } = useSessionResults(id)
 
   if (isLoading) return (

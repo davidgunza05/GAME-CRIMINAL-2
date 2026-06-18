@@ -10,7 +10,7 @@ import { useSession, useStartSession, useAutoAssign, useCaseCharacters } from '@
 import { useGameSocket } from '@/hooks/useGameSocket'
 import { useAuthStore } from '@/store/auth.store'
 import { GameSession } from '@/types/game'
-
+ 
 export default function LobbyPage({ params }: { params: { id: string } }) {
   const { id } = params
   const router = useRouter()

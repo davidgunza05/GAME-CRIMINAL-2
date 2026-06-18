@@ -11,8 +11,8 @@ const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
   : null
 
-export default function OrderPaymentPage({ params }: { params: Promise<{ orderId: string }> }) {
-  const { orderId } = use(params)
+export default function OrderPaymentPage({ params }: { params: { orderId: string } }) {
+  const { orderId } = params
   const { data: order, isLoading, refetch } = useMyOrder(orderId)
   const createStripeIntent = useStripePaymentIntent()
   const createPaypalOrder = usePaypalOrder()
