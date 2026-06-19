@@ -1,4 +1,5 @@
 import { PrismaClient, UserRole } from '@prisma/client'
+import { seedBadges } from '../services/badge.service'
 import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
@@ -195,11 +196,7 @@ async function main() {
         title: 'Relatório da Autopsia',
         description: 'Vítima envenenada com arsénio. Estimativa: 21h-22h.',
         type: 'document',
-        contentText: 'RELATÓRIO FORENSE N.º 2024-089
-Vítima: Victor Aldridge, 67 anos
-Causa da morte: Envenenamento por arsénio
-Janela temporal: 21:00–22:00
-Nota: O veneno foi misturado numa bebida.',
+        contentText: 'RELATÓRIO FORENSE N.º 2024-089 \n Vítima: Victor Aldridge, 67 anos \n Causa da morte: Envenenamento por arsénio \n Janela temporal: 21:00–22:00 \n Nota: O veneno foi misturado numa bebida.',
         isRedHerring: false,
         sortOrder: 1,
       },
@@ -221,10 +218,7 @@ Nota: O veneno foi misturado numa bebida.',
         title: 'Email Confidencial',
         description: 'Email encontrado no computador de Victor.',
         type: 'document',
-        contentText: 'Para: advogado@firma.pt
-Assunto: Rescisão de contrato
-
-Preciso de redigir uma carta de rescisão para Helena Voss. Sem indemnização. Data: amanhã.',
+        contentText: 'Para: advogado@firma.pt \n Assunto: Rescisão de contrato \n Preciso de redigir uma carta de rescisão para Helena Voss. Sem indemnização. Data: amanhã.',
         isRedHerring: false,
         sortOrder: 3,
       },
@@ -246,8 +240,7 @@ Preciso de redigir uma carta de rescisão para Helena Voss. Sem indemnização. 
         title: 'Registo de Compras de Helena',
         description: 'Histórico de compras online de Helena nos últimos 30 dias.',
         type: 'document',
-        contentText: 'Data: 15/01 — "Kit de jardinagem avançado" — loja: Jardim & Cia
-Nota interna: O kit inclui compostos de arsénio para tratamento de pragas.',
+        contentText: 'Data: 15/01 — "Kit de jardinagem avançado" — loja: Jardim & Cia \n Nota interna: O kit inclui compostos de arsénio para tratamento de pragas.',
         isRedHerring: false,
         sortOrder: 5,
       },
@@ -255,6 +248,27 @@ Nota interna: O kit inclui compostos de arsénio para tratamento de pragas.',
   })
 
   console.log('   🎭 Stages, characters and evidence seeded for:', case1.title)
+  // ─── Player Profiles ───────────────────────────────────────────────────
+  for (const u of [admin, organizer, player]) {
+    await prisma.playerProfile.upsert({
+      where: { userId: u.id },
+      update: {},
+      create: {
+        userId: u.id,
+        totalXp: u.id === admin.id ? 4200 : u.id === organizer.id ? 1850 : 350,
+        level: u.id === admin.id ? 8 : u.id === organizer.id ? 5 : 2,
+        sessionsPlayed: u.id === admin.id ? 22 : u.id === organizer.id ? 9 : 2,
+        sessionsSolved: u.id === admin.id ? 18 : u.id === organizer.id ? 7 : 1,
+        correctFirst: u.id === admin.id ? 6 : u.id === organizer.id ? 2 : 0,
+        evidenceFound: u.id === admin.id ? 180 : u.id === organizer.id ? 65 : 8,
+      },
+    })
+  }
+
+  // ─── Badges ───────────────────────────────────────────────────────────
+  await seedBadges()
+  console.log('   🏅 Badges seeded')
+
   console.log('✅ Seed complete!')
   console.log(`   👤 Admin:     admin@crimegame.com / Admin@123456`)
   console.log(`   👤 Organizer: organizer@crimegame.com / Organizer@123456`)

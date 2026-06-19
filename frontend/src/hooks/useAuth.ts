@@ -42,9 +42,8 @@ export const useLogin = () => {
       return res.data
     },
     onSuccess: (data) => {
-      const { user, accessToken, refreshToken } = data.data
+      const { user, accessToken } = data.data
       setAuth(user, accessToken)
-      if (typeof window !== 'undefined' && refreshToken) localStorage.setItem('refreshToken', refreshToken)
       toast.success(`Bem-vindo, Detetive ${user.username}!`)
       router.push('/dashboard')
     },

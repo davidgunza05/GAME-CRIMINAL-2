@@ -20,9 +20,8 @@ function Section({ title, icon: Icon, children }: { title: string; icon: React.E
   )
 }
 
-export default function OrderDetailPage({ params }: { params: { id: string } }) {
-  const { id } = params
-
+export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const { data: order, isLoading } = useMyOrder(id)
 
   if (isLoading) return (

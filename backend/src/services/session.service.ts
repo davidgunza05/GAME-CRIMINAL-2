@@ -1,5 +1,8 @@
 import { prisma } from '../config/prisma'
 import { SessionStatus } from '@prisma/client'
+import { awardXP, incrementStats, XP_REWARDS } from './xp.service'
+import { checkAndAwardBadges } from './badge.service'
+import { sendSessionStarted, sendSessionCompleted } from './communication.service'
 
 // ─── Access code generator ────────────────────────────────────────────────────
 
@@ -183,6 +186,37 @@ export const startSession = async (sessionId: string, hostId: string) => {
       })
     }
   }
+
+  // Award participation XP to all participants
+  const participants_list = await prisma.participant.findMany({ where: { sessionId, userId: { not: null } } })
+  for (const p of participants_list) {
+    if (p.userId) {
+      await awardXP(p.userId, XP_REWARDS.PARTICIPATION, 'Participação em sessão', sessionId, session.caseId)
+      await incrementStats(p.userId, { sessionsPlayed: 1 })
+    }
+  }
+
+  // Fire started emails (non-blocking)
+  prisma.gameSession.findUnique({
+    where: { id: sessionId },
+    include: {
+      case: { select: { title: true } },
+      participants: { include: { user: { select: { email: true, displayName: true, username: true } } } },
+    },
+  }).then((s) => {
+    if (!s) return
+    for (const p of s.participants) {
+      if (p.user?.email && p.userId !== s.hostId) {
+        sendSessionStarted({
+          to: p.user.email,
+          toName: p.user.displayName || p.user.username,
+          caseTitle: s.case.title,
+          sessionId: s.id,
+          userId: p.userId ?? undefined,
+        }).catch(() => {})
+      }
+    }
+  }).catch(() => {})
 
   return prisma.gameSession.update({
     where: { id: sessionId },
@@ -378,6 +412,22 @@ export const submitAccusation = async (
       participant: { include: { user: { select: { username: true } } } },
     },
   })
+
+  // Award XP and check badges if correct
+  if (isCorrect) {
+    const isFirstTry = prevAttempts === 0
+    const xpAmount = isFirstTry ? XP_REWARDS.CASE_SOLVED_FIRST_TRY : XP_REWARDS.CASE_SOLVED
+    await awardXP(userId, xpAmount, isFirstTry ? 'Caso resolvido na primeira tentativa!' : 'Caso resolvido', sessionId, session.caseId)
+    await awardXP(userId, XP_REWARDS.CORRECT_ACCUSATION, 'Acusação correta', sessionId)
+    await incrementStats(userId, {
+      sessionsSolved: 1,
+      totalAccusations: 1,
+      correctFirst: isFirstTry ? 1 : 0,
+    })
+    await checkAndAwardBadges(userId, sessionId)
+  } else {
+    await incrementStats(userId, { totalAccusations: 1 })
+  }
 
   // Auto-complete session if correct
   if (isCorrect) {

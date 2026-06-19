@@ -32,6 +32,9 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string().default(''),
   CLOUDINARY_API_SECRET: z.string().default(''),
 
+  WHATSAPP_TOKEN: z.string().default(''),
+  WHATSAPP_PHONE_ID: z.string().default(''),
+
   FRONTEND_URL: z.string().url().default('http://localhost:3000'),
 })
 

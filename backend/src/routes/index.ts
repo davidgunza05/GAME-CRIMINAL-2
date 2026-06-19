@@ -5,6 +5,8 @@ import caseRoutes from './case.routes'
 import orderRoutes from './order.routes'
 import sessionRoutes from './session.routes'
 import contentRoutes from './content.routes'
+import gamificationRoutes from './gamification.routes'
+import analyticsRoutes from './analytics.routes'
 
 const router = Router()
 
@@ -14,6 +16,8 @@ router.use('/cases', caseRoutes)
 router.use('/orders', orderRoutes)
 router.use('/sessions', sessionRoutes)
 router.use('/cases/:caseId', contentRoutes)
+router.use('/game', gamificationRoutes)
+router.use('/analytics', analyticsRoutes)
 
 // Health check
 router.get('/health', (_req, res) => {

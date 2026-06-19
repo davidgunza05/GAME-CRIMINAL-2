@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: { default: 'Crime Game', template: '%s — Crime Game' },
   description: 'Plataforma imersiva de investigação criminal. Resolve casos, descobre culpados, domina o crime.',
   keywords: ['crime', 'jogo', 'investigação', 'mistério', 'murder mystery', 'escape room'],
-  // themeColor removed to avoid repeated Next.js dev warnings.
+  themeColor: '#0A0A0F',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

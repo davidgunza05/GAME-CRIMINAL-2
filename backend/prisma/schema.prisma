@@ -48,6 +48,10 @@ model User {
   hostedSessions    GameSession[]  @relation("HostedSessions")
   participations    Participant[]
   evidenceUnlocks   EvidenceUnlock[]
+  xpEvents          XpEvent[]
+  playerProfile     PlayerProfile?
+  badges            UserBadge[]
+  commLogs          CommunicationLog[]
 
   @@map("users")
 }
@@ -517,4 +521,132 @@ model Accusation {
   @@index([sessionId])
   @@index([participantId])
   @@map("accusations")
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// FASE 5 — XP, BADGES, LEADERBOARDS, COMUNICAÇÕES
+// ════════════════════════════════════════════════════════════════════════════
+
+enum BadgeRarity {
+  common
+  uncommon
+  rare
+  epic
+  legendary
+}
+
+enum CommStatus {
+  queued
+  sent
+  failed
+  cancelled
+}
+
+enum CommChannel {
+  email
+  whatsapp
+}
+
+enum CommType {
+  session_invite
+  character_assigned
+  clue_unlocked
+  session_started
+  session_completed
+  accusation_result
+  welcome
+  password_reset
+}
+
+// ─── XP Ledger ────────────────────────────────────────────────────────────────
+
+model XpEvent {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  amount      Int
+  reason      String
+  sessionId   String?  @map("session_id")
+  caseId      String?  @map("case_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("xp_events")
+}
+
+// ─── Player Profile (XP totals, stats) ───────────────────────────────────────
+
+model PlayerProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  totalXp         Int      @default(0) @map("total_xp")
+  level           Int      @default(1)
+  sessionsPlayed  Int      @default(0) @map("sessions_played")
+  sessionsSolved  Int      @default(0) @map("sessions_solved")
+  totalAccusations Int     @default(0) @map("total_accusations")
+  correctFirst    Int      @default(0) @map("correct_first")   // solved on first attempt
+  evidenceFound   Int      @default(0) @map("evidence_found")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("player_profiles")
+}
+
+// ─── Badges ───────────────────────────────────────────────────────────────────
+
+model Badge {
+  id          String      @id @default(uuid())
+  slug        String      @unique
+  name        String
+  description String
+  icon        String      // emoji or URL
+  rarity      BadgeRarity @default(common)
+  criteria    Json        // { type, threshold, ... }
+  isActive    Boolean     @default(true) @map("is_active")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  awards      UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  badgeId   String   @map("badge_id")
+  awardedAt DateTime @default(now()) @map("awarded_at")
+  sessionId String?  @map("session_id")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge     Badge    @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@map("user_badges")
+}
+
+// ─── Communication Logs ───────────────────────────────────────────────────────
+
+model CommunicationLog {
+  id           String      @id @default(uuid())
+  userId       String?     @map("user_id")
+  sessionId    String?     @map("session_id")
+  channel      CommChannel
+  type         CommType
+  recipient    String      // email or phone
+  subject      String?
+  status       CommStatus  @default(queued)
+  providerId   String?     @map("provider_id")
+  errorMessage String?     @map("error_message")
+  sentAt       DateTime?   @map("sent_at")
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  user         User?       @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([status])
+  @@map("communication_logs")
 }

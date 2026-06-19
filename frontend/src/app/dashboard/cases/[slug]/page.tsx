@@ -8,8 +8,8 @@ import { useCartStore } from '@/store/cart.store'
 import { difficultyMap, caseTypeMap, formatPrice, formatDuration } from '@/lib/shop.utils'
 import toast from 'react-hot-toast'
 
-export default function CaseDetailPage({ params }: { params: { slug: string } }) {
-  const { slug } = params
+export default function CaseDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params)
   const { data: c, isLoading } = useCaseBySlug(slug)
   const addItem = useCartStore((s) => s.addItem)
 
@@ -37,8 +37,8 @@ export default function CaseDetailPage({ params }: { params: { slug: string } })
     </div>
   )
 
-  const diff = difficultyMap[c.difficulty as keyof typeof difficultyMap]
-  const typeInfo = caseTypeMap[c.type as keyof typeof caseTypeMap]
+  const diff = difficultyMap[c.difficulty]
+  const typeInfo = caseTypeMap[c.type]
 
   return (
     <div className="p-8 max-w-5xl">

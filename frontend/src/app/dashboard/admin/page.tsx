@@ -1,205 +1,174 @@
 'use client'
 
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Loader2, Search, Shield, UserCheck, UserX } from 'lucide-react'
-import toast from 'react-hot-toast'
-import { clsx } from 'clsx'
+import { useState, useEffect } from 'react'
+import { Loader2, RefreshCw, Shield } from 'lucide-react'
+import { useAnalytics } from '@/hooks/useAnalytics'
 import { useAuthStore } from '@/store/auth.store'
 import { useRouter } from 'next/navigation'
-import api from '@/lib/api'
+import KpiCard from '@/components/admin/KpiCard'
+import LineChart from '@/components/charts/LineChart'
+import BarChart from '@/components/charts/BarChart'
+import ActivityFeed from '@/components/admin/ActivityFeed'
+import { formatPrice } from '@/lib/shop.utils'
 
-type Role = 'admin' | 'organizer' | 'player'
+const PERIODS = [{ label: '7 dias', value: 7 }, { label: '30 dias', value: 30 }, { label: '90 dias', value: 90 }]
 
-export default function AdminUsersPage() {
+function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="card p-5">
+      <p className="text-xs font-mono uppercase tracking-widest text-crime-text-faint mb-5">{title}</p>
+      {children}
+    </div>
+  )
+}
+
+export default function AdminDashboardPage() {
   const { user } = useAuthStore()
   const router = useRouter()
-  const queryClient = useQueryClient()
-  const [search, setSearch] = useState('')
-  const [roleFilter, setRoleFilter] = useState<Role | ''>('')
-  const [page, setPage] = useState(1)
+  const [days, setDays] = useState(30)
 
-  // Redirect non-admins
-  if (user && user.role !== 'admin') {
-    router.push('/dashboard')
-    return null
-  }
+  useEffect(() => { if (user && user.role !== 'admin') router.push('/dashboard') }, [user, router])
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin', 'users', page, search, roleFilter],
-    queryFn: async () => {
-      const params = new URLSearchParams({ page: String(page), limit: '20' })
-      if (search) params.set('search', search)
-      if (roleFilter) params.set('role', roleFilter)
-      const res = await api.get(`/users?${params}`)
-      return res.data.data
-    },
-  })
+  const { data, isLoading, refetch, isFetching } = useAnalytics(days)
+  if (!user || user.role !== 'admin') return null
 
-  const toggleActive = useMutation({
-    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      await api.patch(`/users/${id}/active`, { isActive })
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
-      toast.success('Estado do utilizador atualizado')
-    },
-    onError: () => toast.error('Erro ao atualizar utilizador'),
-  })
-
-  const changeRole = useMutation({
-    mutationFn: async ({ id, role }: { id: string; role: Role }) => {
-      await api.patch(`/users/${id}/role`, { role })
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
-      toast.success('Role atualizada')
-    },
-    onError: () => toast.error('Erro ao alterar role'),
-  })
+  const kpis = data?.kpis
 
   return (
     <div className="p-8">
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <Shield size={18} className="text-crime-red" />
-          <p className="text-xs font-mono tracking-[0.3em] uppercase text-crime-red">Administração</p>
-        </div>
-        <h1 className="text-3xl font-bold text-crime-text-primary">Gestão de Utilizadores</h1>
-      </div>
-
-      {/* Filters */}
-      <div className="flex gap-3 mb-6">
-        <div className="relative flex-1 max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-crime-text-faint" />
-          <input
-            type="text"
-            className="input pl-9"
-            placeholder="Pesquisar por email, username..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-          />
-        </div>
-        <select
-          className="input w-40"
-          value={roleFilter}
-          onChange={(e) => { setRoleFilter(e.target.value as Role | ''); setPage(1) }}
-        >
-          <option value="">Todos os roles</option>
-          <option value="admin">Admin</option>
-          <option value="organizer">Organizer</option>
-          <option value="player">Player</option>
-        </select>
-      </div>
-
-      {/* Table */}
-      <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-crime-border bg-crime-black/50">
-                <th className="text-left px-4 py-3 text-xs font-mono uppercase tracking-widest text-crime-text-faint">Utilizador</th>
-                <th className="text-left px-4 py-3 text-xs font-mono uppercase tracking-widest text-crime-text-faint">Role</th>
-                <th className="text-left px-4 py-3 text-xs font-mono uppercase tracking-widest text-crime-text-faint">Email</th>
-                <th className="text-left px-4 py-3 text-xs font-mono uppercase tracking-widest text-crime-text-faint">Estado</th>
-                <th className="text-right px-4 py-3 text-xs font-mono uppercase tracking-widest text-crime-text-faint">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-12">
-                    <Loader2 size={24} className="animate-spin text-crime-red mx-auto" />
-                  </td>
-                </tr>
-              ) : data?.users?.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-12 text-crime-text-faint">
-                    Nenhum utilizador encontrado
-                  </td>
-                </tr>
-              ) : (
-                data?.users?.map((u: any) => (
-                  <tr key={u.id} className="border-b border-crime-border/50 hover:bg-crime-muted/10 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-crime-red/15 border border-crime-red/20 flex items-center justify-center text-crime-red text-xs font-bold">
-                          {u.username[0]?.toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="text-crime-text-primary font-medium">{u.displayName || u.username}</p>
-                          <p className="text-xs text-crime-text-faint">@{u.username}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <select
-                        className="bg-transparent text-xs border border-crime-border rounded px-2 py-1 text-crime-text-secondary"
-                        value={u.role}
-                        onChange={(e) => changeRole.mutate({ id: u.id, role: e.target.value as Role })}
-                        disabled={u.id === user?.id}
-                      >
-                        <option value="player">player</option>
-                        <option value="organizer">organizer</option>
-                        <option value="admin">admin</option>
-                      </select>
-                    </td>
-                    <td className="px-4 py-3 text-crime-text-muted">{u.email}</td>
-                    <td className="px-4 py-3">
-                      <span className={clsx(
-                        'badge',
-                        u.isActive
-                          ? 'bg-green-950 text-green-400'
-                          : 'bg-red-950 text-red-400'
-                      )}>
-                        {u.isActive ? 'Ativo' : 'Inativo'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => toggleActive.mutate({ id: u.id, isActive: !u.isActive })}
-                        disabled={u.id === user?.id}
-                        className="btn-ghost text-xs py-1.5 px-3 disabled:opacity-30"
-                        title={u.isActive ? 'Desativar' : 'Ativar'}
-                      >
-                        {u.isActive
-                          ? <UserX size={14} className="text-red-400" />
-                          : <UserCheck size={14} className="text-green-400" />
-                        }
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {data?.meta && data.meta.totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-crime-border">
-            <p className="text-xs text-crime-text-faint">
-              {data.meta.total} utilizadores · página {page} de {data.meta.totalPages}
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="btn-ghost text-xs py-1.5 px-3"
-              >
-                ← Anterior
-              </button>
-              <button
-                onClick={() => setPage((p) => Math.min(data.meta.totalPages, p + 1))}
-                disabled={page === data.meta.totalPages}
-                className="btn-ghost text-xs py-1.5 px-3"
-              >
-                Próxima →
-              </button>
-            </div>
+      <div className="flex items-start justify-between mb-8 flex-wrap gap-4">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <Shield size={18} className="text-crime-red" />
+            <p className="text-xs font-mono tracking-[0.3em] uppercase text-crime-red">Administração</p>
           </div>
-        )}
+          <h1 className="text-3xl font-bold text-crime-text-primary">Dashboard</h1>
+          {data?.generatedAt && (
+            <p className="text-xs text-crime-text-faint font-mono mt-1">
+              Atualizado: {new Date(data.generatedAt).toLocaleTimeString('pt-PT')}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex gap-1">
+            {PERIODS.map(({ label, value }) => (
+              <button key={value} onClick={() => setDays(value)}
+                className={`px-3 py-1.5 rounded text-xs font-mono transition-all ${days === value ? 'bg-crime-red text-white' : 'bg-crime-surface border border-crime-border text-crime-text-faint hover:border-crime-red/40'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => refetch()} disabled={isFetching} className="btn-secondary p-2">
+            <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+          </button>
+        </div>
       </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-20"><Loader2 size={32} className="text-crime-red animate-spin" /></div>
+      ) : (
+        <div className="space-y-6">
+          {/* KPIs */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <KpiCard icon="👥" label="Utilizadores" value={kpis?.users.total?.toLocaleString('pt-PT') ?? '—'} sub={`+${kpis?.users.thisMonth ?? 0} este mês`} pctChange={kpis?.users.pctChange} accent="#2980B9" delay={0} />
+            <KpiCard icon="💰" label="Receita" value={formatPrice(kpis?.revenue.total ?? 0)} sub={`${formatPrice(kpis?.revenue.thisMonth ?? 0)} este mês`} pctChange={kpis?.revenue.pctChange} accent="#27AE60" delay={0.05} />
+            <KpiCard icon="🛒" label="Encomendas" value={kpis?.orders.total?.toLocaleString('pt-PT') ?? '—'} sub={`+${kpis?.orders.thisMonth ?? 0} este mês`} pctChange={kpis?.orders.pctChange} accent="#E67E22" delay={0.1} />
+            <KpiCard icon="🎮" label="Sessões Concluídas" value={kpis?.sessions.completed?.toLocaleString('pt-PT') ?? '—'} sub={`Taxa: ${kpis?.sessions.completionRate ?? 0}%`} accent="#8E44AD" delay={0.15} />
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <KpiCard icon="📦" label="Casos Publicados" value={kpis?.cases.published ?? '—'} accent="#16A085" delay={0.2} />
+            <KpiCard icon="⭐" label="XP Total" value={(kpis?.xp.totalAwarded ?? 0).toLocaleString('pt-PT')} accent="#F39C12" delay={0.22} />
+            <KpiCard icon="⏱️" label="Tempo Médio" value={`${data?.avgSessionTime?.avgMinutes ?? 0} min`} sub={`${data?.avgSessionTime?.sessions ?? 0} sessões`} accent="#1ABC9C" delay={0.24} />
+            <KpiCard icon="🔍" label="Sessões Ativas" value={kpis?.sessions.active ?? '—'} sub="Agora mesmo" accent="#C0392B" delay={0.26} />
+          </div>
+
+          {/* Charts row 1 */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ChartCard title="Receita Diária">
+              {data?.revenueChart && <LineChart data={data.revenueChart} lines={[{ key: 'revenue', label: 'Receita', color: '#27AE60' }]} formatY={(v) => `€${v.toFixed(0)}`} />}
+            </ChartCard>
+            <ChartCard title="Crescimento de Utilizadores">
+              {data?.userGrowth && <LineChart data={data.userGrowth} lines={[{ key: 'newUsers', label: 'Novos', color: '#2980B9' }, { key: 'total', label: 'Total', color: '#8E44AD' }]} />}
+            </ChartCard>
+          </div>
+
+          {/* Charts row 2 */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <ChartCard title="Sessões por Dia">
+              {data?.sessionsChart && <LineChart data={data.sessionsChart} lines={[{ key: 'created', label: 'Criadas', color: '#8E44AD' }, { key: 'completed', label: 'Concluídas', color: '#27AE60' }]} />}
+            </ChartCard>
+            <ChartCard title="Drop-off de Sessões">
+              {data?.dropOff && <BarChart data={data.dropOff.map((d: any) => ({ label: d.status, value: d.count, color: d.status === 'Concluída' ? '#27AE60' : d.status === 'Ativa' ? '#2980B9' : d.status === 'Cancelada' ? '#C0392B' : '#666' }))} />}
+            </ChartCard>
+            <ChartCard title="Retenção de Jogadores">
+              {data?.retention && <BarChart data={data.retention.map((d: any) => ({ label: d.label, value: d.count, color: d.color }))} />}
+            </ChartCard>
+          </div>
+
+          {/* Bottom row */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <ChartCard title="Top Casos por Receita">
+              <div className="space-y-3">
+                {(data?.topCases ?? []).map((item: any, i: number) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="text-crime-text-faint font-mono text-xs w-4 shrink-0">#{i + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-crime-text-secondary truncate">{item.case?.title ?? '—'}</p>
+                      <p className="text-xs text-crime-text-faint">{item.orders} encomendas</p>
+                    </div>
+                    <span className="font-mono font-bold text-sm text-crime-red shrink-0">{formatPrice(item.revenue)}</span>
+                  </div>
+                ))}
+                {(!data?.topCases || data.topCases.length === 0) && (
+                  <p className="text-crime-text-faint text-sm text-center py-4 italic">Sem dados de receita</p>
+                )}
+              </div>
+            </ChartCard>
+
+            <ChartCard title="Suspeitos Mais Acusados">
+              {data?.accusationStats && (() => {
+                const map = new Map<string, number>()
+                for (const a of data.accusationStats) {
+                  const name = a.suspect?.name ?? '?'
+                  map.set(name, (map.get(name) ?? 0) + a.count)
+                }
+                const sorted = [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)
+                return <BarChart horizontal data={sorted.map(([label, value]) => ({ label, value, color: '#C0392B' }))} />
+              })()}
+            </ChartCard>
+
+            <ChartCard title="Actividade Recente">
+              {data?.activityFeed && <ActivityFeed events={data.activityFeed} />}
+            </ChartCard>
+          </div>
+
+          {/* Stage completion */}
+          {data?.stageCompletion && data.stageCompletion.length > 0 && (
+            <ChartCard title="Conclusão por Stage">
+              <div className="space-y-6">
+                {data.stageCompletion.map((c: any) => (
+                  <div key={c.caseId}>
+                    <p className="text-xs font-mono text-crime-text-faint mb-3">{c.caseTitle}</p>
+                    <div className="space-y-2">
+                      {c.stages.map((s: any) => (
+                        <div key={s.stageId} className="flex items-center gap-3">
+                          <span className="font-mono text-xs text-crime-text-faint w-4 shrink-0">{s.order}</span>
+                          <span className="text-xs text-crime-text-secondary w-32 truncate">{s.title}</span>
+                          <div className="flex-1 h-2 bg-crime-black rounded-full overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${s.reachedPct}%`, background: s.isLast ? '#C0392B' : '#2980B9', transition: 'width 0.7s ease' }} />
+                          </div>
+                          <span className="font-mono text-xs text-crime-text-faint w-10 text-right shrink-0">{s.reachedPct}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ChartCard>
+          )}
+        </div>
+      )}
     </div>
   )
 }

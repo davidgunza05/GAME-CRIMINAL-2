@@ -53,15 +53,7 @@ api.interceptors.response.use(
       isRefreshing = true
 
       try {
-        // If refresh token cookie isn't available (dev cross-origin), send
-        // refresh token from localStorage if present.
-        const body: any = {}
-        if (typeof window !== 'undefined') {
-          const stored = localStorage.getItem('refreshToken')
-          if (stored) body.refreshToken = stored
-        }
-
-        const { data } = await api.post('/auth/refresh', Object.keys(body).length ? body : undefined)
+        const { data } = await api.post('/auth/refresh')
         const newToken = data.data?.accessToken
         if (newToken) {
           localStorage.setItem('accessToken', newToken)
