@@ -196,3 +196,78 @@ Para produção, cria uma conta gratuita em [resend.com](https://resend.com).
 - 🔲 **Fase 5** — Pontuação & Comunicações
 - 🔲 **Fase 6** — Admin Dashboard & Analytics
 - 🔲 **Fase 7** — Marketplace de Criadores
+
+---
+
+## 🌐 Fase 7 — Case Builder & Marketplace
+
+### Fluxo de Submissão
+
+```
+draft → submitted → under_review → approved → published
+                         ↓
+                      rejected (volta a draft para corrigir)
+```
+
+### Quem pode criar casos?
+- **Admin** e **Organizer** — acesso ao Case Builder
+- **Player** — só pode jogar e fazer reviews
+
+### Endpoints do Builder
+
+| Método | Endpoint | Descrição | Auth |
+|--------|----------|-----------|------|
+| GET | `/api/builder/my` | Os meus casos | organizer+ |
+| POST | `/api/builder` | Criar rascunho | organizer+ |
+| GET | `/api/builder/:caseId` | Ver o meu caso | organizer+ |
+| PATCH | `/api/builder/:caseId` | Atualizar rascunho | organizer+ |
+| DELETE | `/api/builder/:caseId` | Eliminar rascunho | organizer+ |
+| GET | `/api/builder/:caseId/validate` | Verificar completude | organizer+ |
+| POST | `/api/builder/:caseId/submit` | Submeter para revisão | organizer+ |
+| GET | `/api/builder/:caseId/stages` | Listar stages | organizer+ |
+| POST | `/api/builder/:caseId/stages` | Criar stage | organizer+ |
+| GET | `/api/builder/:caseId/characters` | Listar personagens | organizer+ |
+| POST | `/api/builder/:caseId/characters` | Criar personagem | organizer+ |
+| GET | `/api/builder/:caseId/evidence` | Listar evidências | organizer+ |
+| POST | `/api/builder/:caseId/evidence` | Criar evidência | organizer+ |
+| GET | `/api/builder/:caseId/reviews` | Reviews do caso | ✅ |
+| POST | `/api/builder/:caseId/reviews` | Submeter review | ✅ |
+
+### Endpoints Admin Moderação
+
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| GET | `/api/builder/admin/submissions` | Fila de moderação |
+| GET | `/api/builder/admin/submissions/:id` | Ver submissão |
+| POST | `/api/builder/admin/submissions/:id/moderate` | Ação de moderação |
+
+#### Ações disponíveis
+- `approve` — Aprova o caso (pronto para publicar)
+- `reject` — Rejeita com motivo
+- `request_changes` — Pede alterações específicas
+- `publish` — Publica diretamente
+- `unpublish` — Retira da plataforma
+
+### Validação automática antes da submissão
+- Título (min. 3 caracteres)
+- Descrição (min. 20 caracteres)
+- Pelo menos 1 preço definido
+- Pelo menos 1 stage
+- Pelo menos 1 stage marcada como final (isLast)
+- Pelo menos 2 personagens
+- Pelo menos 1 personagem marcada como culpado (isKiller)
+- Pelo menos 3 evidências
+
+### Páginas do Builder
+
+| Página | Rota |
+|--------|------|
+| Os Meus Casos | `/dashboard/builder` |
+| Novo Caso | `/dashboard/builder/new` |
+| Editar Informações | `/dashboard/builder/[id]/edit` |
+| Stages | `/dashboard/builder/[id]/stages` |
+| Personagens | `/dashboard/builder/[id]/characters` |
+| Evidências | `/dashboard/builder/[id]/evidence` |
+| Submeter | `/dashboard/builder/[id]/submit` |
+| Moderação (admin) | `/dashboard/admin/moderation` |
+| Detalhe Moderação | `/dashboard/admin/moderation/[id]` |

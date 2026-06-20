@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ShoppingBag, Gamepad2, Trophy,
-  Settings, LogOut, Shield, ChevronRight, Loader2, Package, User, MessageSquare, Award, BarChart2
+  Settings, LogOut, Shield, ChevronRight, Loader2, Package, User, MessageSquare, Award, BarChart2, BookOpen, ClipboardList
 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useAuthStore } from '@/store/auth.store'
@@ -20,6 +20,7 @@ const navItems = [
   { href: '/dashboard/sessions', label: 'Sessões', icon: Gamepad2 },
   { href: '/dashboard/leaderboard', label: 'Leaderboard', icon: Trophy },
   { href: '/dashboard/profile', label: 'O Meu Perfil', icon: User },
+  { href: '/dashboard/builder', label: 'Case Builder', icon: BookOpen },
   { href: '/dashboard/settings', label: 'Definições', icon: Settings },
 ]
 
@@ -31,6 +32,7 @@ const adminItems = [
   { href: '/dashboard/admin/badges', label: 'Badges', icon: Award },
   { href: '/dashboard/admin/comms', label: 'Comunicações', icon: MessageSquare },
   { href: '/dashboard/admin/analytics', label: 'Analytics', icon: BarChart2 },
+  { href: '/dashboard/admin/moderation', label: 'Moderação', icon: ClipboardList },
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -93,7 +95,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-0.5">
-          {navItems.map(({ href, label, icon: Icon }) => {
+          {navItems
+            .filter(item => {
+              if (item.href === '/dashboard/builder') return user?.role === 'admin' || user?.role === 'organizer'
+              return true
+            })
+            .map(({ href, label, icon: Icon }) => {
             const active = pathname === href
             return (
               <Link

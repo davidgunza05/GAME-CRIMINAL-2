@@ -57,6 +57,7 @@ async function main() {
     where: { slug: 'a-noite-do-mansion' },
     update: {},
     create: {
+      authorId: admin.id,
       slug: 'a-noite-do-mansion',
       title: 'A Noite do Mansion',
       shortDescription: 'Um magnata encontrado morto na sua mansão. Seis suspeitos. Uma noite para resolver o mistério.',
@@ -79,6 +80,7 @@ async function main() {
     where: { slug: 'codigo-vermelho' },
     update: {},
     create: {
+      authorId: admin.id,
       slug: 'codigo-vermelho',
       title: 'Código Vermelho',
       shortDescription: 'Um laboratório secreto. Um cientista desaparecido. E uma fórmula que pode mudar o mundo.',
@@ -196,7 +198,11 @@ async function main() {
         title: 'Relatório da Autopsia',
         description: 'Vítima envenenada com arsénio. Estimativa: 21h-22h.',
         type: 'document',
-        contentText: 'RELATÓRIO FORENSE N.º 2024-089 \n Vítima: Victor Aldridge, 67 anos \n Causa da morte: Envenenamento por arsénio \n Janela temporal: 21:00–22:00 \n Nota: O veneno foi misturado numa bebida.',
+        contentText: 'RELATÓRIO FORENSE N.º 2024-089
+Vítima: Victor Aldridge, 67 anos
+Causa da morte: Envenenamento por arsénio
+Janela temporal: 21:00–22:00
+Nota: O veneno foi misturado numa bebida.',
         isRedHerring: false,
         sortOrder: 1,
       },
@@ -218,7 +224,10 @@ async function main() {
         title: 'Email Confidencial',
         description: 'Email encontrado no computador de Victor.',
         type: 'document',
-        contentText: 'Para: advogado@firma.pt \n Assunto: Rescisão de contrato \n Preciso de redigir uma carta de rescisão para Helena Voss. Sem indemnização. Data: amanhã.',
+        contentText: 'Para: advogado@firma.pt
+Assunto: Rescisão de contrato
+
+Preciso de redigir uma carta de rescisão para Helena Voss. Sem indemnização. Data: amanhã.',
         isRedHerring: false,
         sortOrder: 3,
       },
@@ -240,7 +249,8 @@ async function main() {
         title: 'Registo de Compras de Helena',
         description: 'Histórico de compras online de Helena nos últimos 30 dias.',
         type: 'document',
-        contentText: 'Data: 15/01 — "Kit de jardinagem avançado" — loja: Jardim & Cia \n Nota interna: O kit inclui compostos de arsénio para tratamento de pragas.',
+        contentText: 'Data: 15/01 — "Kit de jardinagem avançado" — loja: Jardim & Cia
+Nota interna: O kit inclui compostos de arsénio para tratamento de pragas.',
         isRedHerring: false,
         sortOrder: 5,
       },
@@ -264,6 +274,37 @@ async function main() {
       },
     })
   }
+
+  // ─── Case Submissions for demo cases ────────────────────────────────────
+  await prisma.caseSubmission.upsert({
+    where: { caseId: case1.id },
+    update: {},
+    create: {
+      caseId: case1.id,
+      authorId: admin.id,
+      status: 'published',
+      submittedAt: new Date(),
+      reviewedAt: new Date(),
+      reviewedById: admin.id,
+      publishedAt: new Date(),
+    },
+  })
+
+  await prisma.caseSubmission.upsert({
+    where: { caseId: case2.id },
+    update: {},
+    create: {
+      caseId: case2.id,
+      authorId: admin.id,
+      status: 'published',
+      submittedAt: new Date(),
+      reviewedAt: new Date(),
+      reviewedById: admin.id,
+      publishedAt: new Date(),
+    },
+  })
+
+  console.log('   📋 Case submissions seeded')
 
   // ─── Badges ───────────────────────────────────────────────────────────
   await seedBadges()

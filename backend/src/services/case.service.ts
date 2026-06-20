@@ -119,13 +119,14 @@ export const getCaseById = async (id: string) => {
   return prisma.case.findUnique({ where: { id } })
 }
 
-export const createCase = async (input: CreateCaseInput) => {
+export const createCase = async (input: CreateCaseInput, authorId?: string) => {
   const existing = await prisma.case.findUnique({ where: { slug: input.slug } })
   if (existing) throw new Error('SLUG_TAKEN')
 
   return prisma.case.create({
     data: {
       ...input,
+      ...(authorId ? { authorId } : {}),
       priceDigital: input.priceDigital ?? null,
       pricePhysical: input.pricePhysical ?? null,
     },
