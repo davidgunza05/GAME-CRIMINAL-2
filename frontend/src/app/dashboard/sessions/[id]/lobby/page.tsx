@@ -12,8 +12,8 @@ import { useAuthStore } from '@/store/auth.store'
 import { GameSession } from '@/types/game'
 import { formatDate } from '@/lib/shop.utils'
 
-export default function LobbyPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function LobbyPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const router = useRouter()
   const { user } = useAuthStore()
   const [session, setSession] = useState<GameSession | null>(null)

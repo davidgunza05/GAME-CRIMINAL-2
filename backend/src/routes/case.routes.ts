@@ -12,6 +12,11 @@ const router = Router()
 router.get('/', validate(listCasesQuerySchema, 'query'), caseController.listCases)
 router.get('/featured', caseController.getFeaturedCases)
 router.get('/tags', caseController.getAllTags)
+
+// ─── Autenticado ──────────────────────────────────────────────────────────────
+
+router.get('/my-access', authenticate, caseController.getMyCases)
+router.get('/:slug/access', authenticate, caseController.checkCaseAccess)
 router.get('/:slug', caseController.getCaseBySlug)
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
@@ -34,5 +39,9 @@ router.patch('/:id/publish', authenticate, isAdmin,
 
 router.patch('/:id/featured', authenticate, isAdmin,
   validate(z.object({ isFeatured: z.boolean() })), caseController.toggleFeatured)
+
+// Admin — conceder acesso manual
+router.post('/:caseId/grant-access', authenticate, isAdmin,
+  validate(z.object({ userId: z.string().uuid() })), caseController.adminGrantAccess)
 
 export default router

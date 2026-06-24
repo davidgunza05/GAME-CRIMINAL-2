@@ -34,8 +34,9 @@ const AVAILABLE_ACTIONS: Record<string, ModerationAction[]> = {
   published:    ['unpublish'],
 }
 
-export default function ModerationDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function ModerationDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params
+
   const { data: submission, isLoading } = useAdminSubmission(id)
   const moderate = useModerateSubmission(id)
 

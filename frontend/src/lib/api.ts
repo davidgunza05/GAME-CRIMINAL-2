@@ -4,12 +4,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'
 
 export const api = axios.create({
   baseURL: API_URL,
-  withCredentials: true, // For httpOnly cookies
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 15000,
+  timeout: 8000, // ↓ de 15s → 8s; falha mais cedo com mensagem de erro
 })
 
-// ─── Request interceptor — attach access token ────────────────────────────────
+// ─── Request interceptor ──────────────────────────────────────────────────────
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (typeof window !== 'undefined') {
@@ -21,7 +21,7 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config
 })
 
-// ─── Response interceptor — auto-refresh on 401 ───────────────────────────────
+// ─── Response interceptor — auto-refresh on 401 ──────────────────────────────
 
 let isRefreshing = false
 let failedQueue: Array<{ resolve: (v: any) => void; reject: (v: any) => void }> = []
@@ -39,7 +39,10 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Não tentar refresh em rotas de auth
+    const isAuthRoute = originalRequest.url?.includes('/auth/')
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthRoute) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })

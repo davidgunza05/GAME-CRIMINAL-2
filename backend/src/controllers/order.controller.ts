@@ -37,6 +37,11 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
     const order = await orderService.createOrder(userId, req.body)
     sendCreated(res, { order }, 'Encomenda criada com sucesso')
   } catch (err: any) {
+    if (err.message?.startsWith('ALREADY_PURCHASED:')) {
+      const caseName = err.message.split(':')[1]
+      sendError(res, `Já adquiriste o caso "${caseName}". Cada caso só pode ser comprado uma vez.`, 409)
+      return
+    }
     const messages: Record<string, string> = {
       CASE_NOT_FOUND: 'Caso não encontrado ou indisponível',
       PRICE_NOT_AVAILABLE: 'Preço não disponível para o tipo selecionado',
@@ -71,6 +76,27 @@ export const createStripePaymentIntent = async (req: Request, res: Response): Pr
     const order = await orderService.getOrderById(orderId)
     if (!order || order.userId !== userId) { sendNotFound(res, 'Encomenda não encontrada'); return }
 
+    // Reutilizar Payment Intent existente se ainda estiver processing
+    // Evita acumular registos órfãos ao recarregar a página
+    const existingPayment = await prisma.payment.findFirst({
+      where: { orderId, provider: 'stripe', status: 'processing', externalId: { not: null } },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    if (existingPayment?.externalId) {
+      // Verificar se o PaymentIntent ainda é válido no Stripe
+      const existing = await stripeService.retrievePaymentIntent(existingPayment.externalId)
+      if (existing && existing.status === 'requires_payment_method') {
+        sendSuccess(res, {
+          clientSecret: existing.client_secret,
+          paymentIntentId: existing.id,
+          paymentId: existingPayment.id,
+        })
+        return
+      }
+    }
+
+    // Criar novo Payment Intent
     const payment = await orderService.createPaymentRecord(orderId, 'stripe', Number(order.total), order.currency)
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } })
 
@@ -82,6 +108,34 @@ export const createStripePaymentIntent = async (req: Request, res: Response): Pr
   } catch (err: any) {
     if (err.message === 'STRIPE_NOT_CONFIGURED') sendError(res, 'Stripe não configurado', 503)
     else throw err
+  }
+}
+
+export const confirmStripePayment = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as AuthenticatedRequest).user.id
+    const { paymentIntentId, paymentId } = req.body
+
+    // Verificar que o paymentId pertence a este utilizador
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: { order: { select: { userId: true, id: true } } },
+    })
+    if (!payment || payment.order.userId !== userId) {
+      sendError(res, 'Pagamento não encontrado', 404)
+      return
+    }
+
+    const result = await stripeService.confirmStripePayment(paymentIntentId, paymentId)
+    sendSuccess(res, result, 'Pagamento confirmado com sucesso')
+  } catch (err: any) {
+    if (err.message?.startsWith('PAYMENT_NOT_SUCCEEDED')) {
+      sendError(res, 'O pagamento ainda não foi processado pelo Stripe. Tenta novamente.', 402)
+    } else if (err.message === 'STRIPE_NOT_CONFIGURED') {
+      sendError(res, 'Stripe não configurado', 503)
+    } else {
+      throw err
+    }
   }
 }
 

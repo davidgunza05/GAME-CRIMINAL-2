@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Loader2, RefreshCw, Shield } from 'lucide-react'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import { useAuthStore } from '@/store/auth.store'
-import { useRouter } from 'next/navigation'
 import KpiCard from '@/components/admin/KpiCard'
 import LineChart from '@/components/charts/LineChart'
 import BarChart from '@/components/charts/BarChart'
@@ -24,13 +23,9 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
 
 export default function AdminDashboardPage() {
   const { user } = useAuthStore()
-  const router = useRouter()
   const [days, setDays] = useState(30)
 
-  useEffect(() => { if (user && user.role !== 'admin') router.push('/dashboard') }, [user, router])
-
   const { data, isLoading, refetch, isFetching } = useAnalytics(days)
-  if (!user || user.role !== 'admin') return null
 
   const kpis = data?.kpis
 

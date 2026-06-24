@@ -83,8 +83,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       accessToken: tokens.accessToken,
     }, 'Login efetuado com sucesso')
   } catch (err: any) {
+    if (err.message === 'EMAIL_NOT_VERIFIED') {
+      sendError(res, 'Conta não ativada. Enviámos um novo link de confirmação para o teu email.', 403)
+      return
+    }
     const messages: Record<string, string> = {
-      INVALID_CREDENTIALS: 'Email ou password incorretos',
+      INVALID_CREDENTIALS: 'Email ou password incorretos. Verifica os teus dados.',
       ACCOUNT_DISABLED: 'Conta desativada. Contacta o suporte.',
     }
     sendError(res, messages[err.message] ?? 'Erro ao fazer login', 401)

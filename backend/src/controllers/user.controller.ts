@@ -2,6 +2,7 @@ import { Request, Response } from 'express'
 import * as userService from '../services/user.service'
 import { sendSuccess, sendError, sendNotFound } from '../utils/response'
 import { AuthenticatedRequest } from '../types'
+import { prisma } from '../config/prisma'
 
 // ─── Get My Profile ───────────────────────────────────────────────────────────
 
@@ -100,4 +101,33 @@ export const toggleUserActive = async (req: Request, res: Response): Promise<voi
 export const changeUserRole = async (req: Request, res: Response): Promise<void> => {
   const user = await userService.changeUserRole(req.params.id, req.body.role)
   sendSuccess(res, { user }, 'Role do utilizador alterada com sucesso')
+}
+
+export const getMyStats = async (req: Request, res: Response): Promise<void> => {
+  const userId = (req as AuthenticatedRequest).user.id
+
+  const [casesBought, sessionsTotal, sessionsCompleted, xpProfile] = await Promise.all([
+    prisma.caseAccess.count({ where: { userId } }),
+    prisma.gameSession.count({
+      where: { OR: [{ hostId: userId }, { participants: { some: { userId } } }] },
+    }),
+    prisma.gameSession.count({
+      where: {
+        status: 'completed',
+        OR: [{ hostId: userId }, { participants: { some: { userId } } }],
+      },
+    }),
+    prisma.playerProfile.findUnique({
+      where: { userId },
+      select: { totalXp: true, level: true },
+    }),
+  ])
+
+  sendSuccess(res, {
+    casesBought,
+    sessionsTotal,
+    sessionsCompleted,
+    totalXp: xpProfile?.totalXp ?? 0,
+    level: xpProfile?.level ?? 1,
+  })
 }

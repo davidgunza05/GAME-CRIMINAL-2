@@ -53,6 +53,7 @@ model User {
   badges            UserBadge[]
   commLogs          CommunicationLog[]
   authoredCases     Case[]           @relation("AuthoredCases")
+  caseAccess        CaseAccess[]
   submissions       CaseSubmission[] @relation("AuthoredSubmissions")
   reviewedSubs      CaseSubmission[] @relation("ReviewedSubmissions")
   moderationHistory ModerationHistory[]
@@ -169,7 +170,11 @@ model Case {
   author           User?          @relation("AuthoredCases", fields: [authorId], references: [id])
   characters       Character[]
   evidence         Evidence[]
+  caseAccess       CaseAccess[]
   sessions         GameSession[]
+
+  submissions      CaseSubmission[]   // <-- adicionar
+  reviews          CaseReview[]       // <-- adicionar
 
   @@index([slug])
   @@index([isPublished])
@@ -220,6 +225,7 @@ model Order {
   items           OrderItem[]
   payments        Payment[]
   shipping        ShippingInfo?
+  caseAccess      CaseAccess[]
 
   @@index([userId])
   @@index([orderNumber])
@@ -740,4 +746,23 @@ model CaseReview {
   @@unique([caseId, userId])
   @@index([caseId])
   @@map("case_reviews")
+}
+
+// ─── Case Access (quem comprou e tem acesso ao caso) ─────────────────────────
+
+model CaseAccess {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  caseId    String   @map("case_id")
+  orderId   String?  @map("order_id")   // null = admin grant
+  grantedAt DateTime @default(now()) @map("granted_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  order     Order?   @relation(fields: [orderId], references: [id])
+
+  @@unique([userId, caseId])
+  @@index([userId])
+  @@index([caseId])
+  @@map("case_access")
 }

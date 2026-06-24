@@ -36,7 +36,6 @@ const markFailed = (id: string, error: string) =>
 
 const sendEmail = async (to: string, subject: string, html: string): Promise<string | null> => {
   if (env.NODE_ENV === 'development' && !env.RESEND_API_KEY) {
-    console.log(`\n📧 [DEV] To: ${to} | ${subject}\n`)
     return 'dev-mock-id'
   }
   try {
@@ -46,7 +45,6 @@ const sendEmail = async (to: string, subject: string, html: string): Promise<str
     })
     return data?.id ?? null
   } catch (err: any) {
-    console.error('[Email Error]', err.message)
     throw err
   }
 }
@@ -55,7 +53,6 @@ const sendEmail = async (to: string, subject: string, html: string): Promise<str
 
 const sendWhatsApp = async (to: string, message: string): Promise<string | null> => {
   if (!env.WHATSAPP_TOKEN || !env.WHATSAPP_PHONE_ID) {
-    console.log(`\n📱 [DEV] WhatsApp → ${to}: ${message}\n`)
     return 'dev-mock-wa-id'
   }
   const res = await fetch(

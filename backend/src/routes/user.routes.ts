@@ -17,6 +17,9 @@ const router = Router()
 // GET /api/users/me
 router.get('/me', authenticate, userController.getMyProfile)
 
+// GET /api/users/me/stats
+router.get('/me/stats', authenticate, userController.getMyStats)
+
 // PATCH /api/users/me
 router.patch('/me', authenticate, validate(updateProfileSchema), userController.updateMyProfile)
 

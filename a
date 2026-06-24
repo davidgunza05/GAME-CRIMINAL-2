@@ -53,6 +53,8 @@ frontend/src/app/dashboard/cases/[slug]/page.tsx
 frontend/src/app/dashboard/sessions/[id]/play/page.tsx
 frontend/src/app/dashboard/layout.tsx
 
-
+export default function BuilderEditPage({ params }: { params: { id: string } }) {
+  const { id } = params
+  
 export default function AccusationPage({ params }: { params: { id: string } }) {
   const { id } = params

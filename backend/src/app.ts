@@ -27,7 +27,10 @@ app.use(cookieParser())
 
 // ─── Logging ──────────────────────────────────────────────────────────────────
 if (env.NODE_ENV !== 'test') {
-  app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'))
+  // Log apenas erros (4xx/5xx) — evita spam de cada request no terminal
+  app.use(morgan('combined', {
+    skip: (_req, res) => res.statusCode < 400,
+  }))
 }
 
 // ─── Trust proxy (for rate limiting behind Nginx/Cloudflare) ─────────────────

@@ -102,8 +102,9 @@ function EvidenceForm({ initial, stages, onSave, onCancel, loading }: {
   )
 }
 
-export default function BuilderEvidencePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function BuilderEvidencePage({ params }: { params: { id: string } }) {
+  const { id } = params
+  
   const { data: submission } = useBuilderCase(id)
   const createEvidence = useCreateEvidence(id)
   const updateEvidence = useUpdateEvidence(id)

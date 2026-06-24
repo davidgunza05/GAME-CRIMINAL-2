@@ -1,6 +1,8 @@
 import { env } from '../config/env'
-import { updatePaymentStatus } from './order.service'
+import { updatePaymentStatus, promoteToOrganizer } from './order.service'
+import { grantAccessFromOrder } from './case-access.service'
 import { PaymentStatus } from '@prisma/client'
+import { prisma } from '../config/prisma'
 
 // ─── PayPal OAuth ─────────────────────────────────────────────────────────────
 
@@ -98,12 +100,17 @@ export const capturePaypalOrder = async (paypalOrderId: string, paymentId: strin
   const data = await res.json()
 
   if (data.status === 'COMPLETED') {
-    await updatePaymentStatus(paymentId, PaymentStatus.paid, {
+    const payment = await updatePaymentStatus(paymentId, PaymentStatus.paid, {
       externalId: paypalOrderId,
       externalStatus: data.status,
       paidAt: new Date(),
       providerResponse: data,
     })
+
+    // Conceder acesso e promover utilizador
+    await grantAccessFromOrder(payment.orderId)
+    const order = await prisma.order.findUnique({ where: { id: payment.orderId }, select: { userId: true } })
+    if (order) await promoteToOrganizer(order.userId)
   }
 
   return data

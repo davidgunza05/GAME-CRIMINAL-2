@@ -8,8 +8,8 @@ import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import AccusationForm from '@/components/game/accusation/AccusationForm'
 
-export default function AccusationPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function AccusationPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const { data: session, isLoading } = useSession(id)
   const { data: evidence } = useSessionEvidence(id)
   const { data: characters } = useCaseCharacters(session?.caseId ?? '')

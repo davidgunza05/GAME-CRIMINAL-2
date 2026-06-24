@@ -11,6 +11,7 @@ import { difficultyMap, caseTypeMap, formatPrice } from '@/lib/shop.utils'
 import { Case } from '@/types/shop'
 
 export default function AdminCasesPage() {
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null)
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
@@ -144,7 +145,7 @@ export default function AdminCasesPage() {
                         </button>
                         <button
                           onClick={() => {
-                            if (confirm(`Eliminar "${c.title}"?`)) deleteCase.mutate(c.id)
+                            setDeleteTarget({ id: c.id, title: c.title })
                           }}
                           className="btn-ghost p-1.5 rounded text-crime-text-faint hover:text-red-400"
                         >
@@ -169,6 +170,32 @@ export default function AdminCasesPage() {
           </div>
         )}
       </div>
+    </div>
+      {/* Modal de confirmação de deleção */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="card p-6 max-w-sm w-full space-y-4">
+            <h2 className="font-bold text-crime-text-primary">Eliminar Caso</h2>
+            <p className="text-sm text-crime-text-muted">
+              Tens a certeza que queres eliminar{' '}
+              <strong className="text-crime-text-primary">"{deleteTarget.title}"</strong>?
+              Esta ação é irreversível.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setDeleteTarget(null)} className="btn-ghost text-sm">
+                Cancelar
+              </button>
+              <button
+                onClick={() => { deleteCase.mutate(deleteTarget.id); setDeleteTarget(null) }}
+                disabled={deleteCase.isPending}
+                className="btn-danger text-sm"
+              >
+                {deleteCase.isPending ? 'A eliminar...' : 'Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

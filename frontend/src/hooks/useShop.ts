@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
+import { useAuthStore } from '@/store/auth.store'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import { useCartStore } from '@/store/cart.store'
@@ -82,6 +83,7 @@ export const useMyOrder = (id: string) => {
 export const useCreateOrder = () => {
   const clearCart = useCartStore((s) => s.clearCart)
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (data: any) => {
@@ -90,6 +92,9 @@ export const useCreateOrder = () => {
     },
     onSuccess: (order) => {
       clearCart()
+      // Invalidar acesso para reflectir estado correcto antes de pagar
+      queryClient.invalidateQueries({ queryKey: ['cases', 'my-access'] })
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
       router.push(`/checkout/${order.id}`)
     },
     onError: (err: any) => {
@@ -121,6 +126,24 @@ export const useStripePaymentIntent = () => {
     onError: (err: any) => {
       toast.error(err.response?.data?.message || 'Erro ao iniciar pagamento Stripe')
     },
+  })
+}
+
+// ─── Confirmar pagamento Stripe (sandbox + prod sem webhook) ─────────────────
+
+export const useConfirmStripePayment = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (data: { paymentIntentId: string; paymentId: string }) => {
+      const res = await api.post('/orders/payments/stripe/confirm', data)
+      return res.data.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['cases', 'my-access'] })
+    },
+    onError: () => {},
   })
 }
 

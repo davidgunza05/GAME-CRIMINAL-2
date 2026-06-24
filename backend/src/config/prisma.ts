@@ -9,7 +9,7 @@ declare global {
 export const prisma =
   global.__prisma ??
   new PrismaClient({
-    log: env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    log: ['error'],  // 'query' e 'warn' removidos — evitam spam no terminal
   })
 
 if (env.NODE_ENV !== 'production') {

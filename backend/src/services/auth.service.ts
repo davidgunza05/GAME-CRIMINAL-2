@@ -82,7 +82,7 @@ export const registerUser = async (
   })
 
   // Send verification email (non-blocking)
-  sendVerificationEmail(user.email, user.username, token).catch(console.error)
+  sendVerificationEmail(user.email, user.username, token).catch(() => {})
 
   return { user: toSafeUser(user) }
 }
@@ -114,7 +114,7 @@ export const verifyEmail = async (rawToken: string): Promise<SafeUser> => {
     }),
   ])
 
-  sendWelcomeEmail(user.email, user.username).catch(console.error)
+  sendWelcomeEmail(user.email, user.username).catch(() => {})
 
   return toSafeUser(user)
 }
@@ -169,6 +169,18 @@ export const loginUser = async (
 
   const valid = await comparePassword(password, user.passwordHash)
   if (!valid) throw new Error('INVALID_CREDENTIALS')
+
+  // Email ainda não verificado — reenviar token e bloquear login
+  if (!user.isEmailVerified) {
+    // Invalidar tokens anteriores e gerar novo
+    await prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } })
+    const { token, tokenHash } = generateEmailToken()
+    await prisma.emailVerificationToken.create({
+      data: { userId: user.id, token: tokenHash, expiresAt: getEmailTokenExpiry() },
+    })
+    sendVerificationEmail(user.email, user.username, token).catch(() => {})
+    throw new Error('EMAIL_NOT_VERIFIED')
+  }
 
   const family = uuidv4()
   const tokens = generateTokenPair(toUserPayload(user), family)

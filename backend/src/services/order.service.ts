@@ -1,5 +1,5 @@
 import { prisma } from '../config/prisma'
-import { OrderStatus, PaymentProvider, PaymentStatus } from '@prisma/client'
+import { OrderStatus, PaymentProvider, PaymentStatus, UserRole } from '@prisma/client'
 import { CreateOrderInput } from '../models/order.schema'
 import { getCasePrice } from './case.service'
 import { validateCoupon } from './coupon.service'
@@ -17,7 +17,18 @@ const generateOrderNumber = (): string => {
 export const createOrder = async (userId: string, input: CreateOrderInput) => {
   const { items, couponCode, shippingAddress, notes, currency } = input
 
-  // ── 1. Calculate line items
+  // ── 1. Verificar compras duplicadas — cada caso só pode ser comprado uma vez
+  for (const item of items) {
+    const alreadyOwns = await prisma.caseAccess.findUnique({
+      where: { userId_caseId: { userId, caseId: item.caseId } },
+    })
+    if (alreadyOwns) {
+      const caseRecord = await prisma.case.findUnique({ where: { id: item.caseId }, select: { title: true } })
+      throw new Error(`ALREADY_PURCHASED:${caseRecord?.title ?? item.caseId}`)
+    }
+  }
+
+  // ── 2. Calculate line items
   const resolvedItems = await Promise.all(
     items.map(async (item) => {
       const unitPrice = await getCasePrice(item.caseId, item.type)
@@ -27,7 +38,7 @@ export const createOrder = async (userId: string, input: CreateOrderInput) => {
 
   const subtotal = resolvedItems.reduce((sum, i) => sum + i.total, 0)
 
-  // ── 2. Apply coupon
+  // ── 3. Apply coupon
   let discountAmount = 0
   let couponId: string | undefined
 
@@ -37,13 +48,12 @@ export const createOrder = async (userId: string, input: CreateOrderInput) => {
     couponId = coupon.id
   }
 
-  // ── 3. Shipping cost (flat rate if physical items)
+  // ── 4. Shipping cost
   const hasPhysical = items.some((i) => i.type === 'physical')
   const shippingAmount = hasPhysical ? 4.99 : 0
-
   const total = Math.max(0, subtotal - discountAmount + shippingAmount)
 
-  // ── 4. Create order in transaction
+  // ── 5. Create order in transaction
   const order = await prisma.$transaction(async (tx) => {
     const order = await tx.order.create({
       data: {
@@ -69,14 +79,12 @@ export const createOrder = async (userId: string, input: CreateOrderInput) => {
       include: { items: { include: { case: true } }, shipping: true },
     })
 
-    // Create shipping info if needed
     if (hasPhysical && shippingAddress) {
       await tx.shippingInfo.create({
         data: { orderId: order.id, ...shippingAddress },
       })
     }
 
-    // Increment coupon usage
     if (couponId) {
       await tx.coupon.update({
         where: { id: couponId },
@@ -210,7 +218,6 @@ export const updatePaymentStatus = async (
     data: { status, ...data },
   })
 
-  // Auto-update order status when paid
   if (status === PaymentStatus.paid) {
     await prisma.order.update({
       where: { id: payment.orderId },
@@ -271,4 +278,17 @@ export const processRefund = async (paymentId: string, refundAmount: number) => 
       data: { status: OrderStatus.refunded },
     })
   })
+}
+
+// ─── Promover utilizador para organizer após compra ───────────────────────────
+
+export const promoteToOrganizer = async (userId: string): Promise<void> => {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } })
+  // Só promove players — admins e organizers não são alterados
+  if (user?.role === UserRole.player) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { role: UserRole.organizer },
+    })
+  }
 }

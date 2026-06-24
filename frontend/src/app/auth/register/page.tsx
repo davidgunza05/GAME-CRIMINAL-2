@@ -4,7 +4,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import Link from 'next/link'
-import { Loader2 } from 'lucide-react'
+import { Loader2, AlertCircle, CheckCircle } from 'lucide-react'
+import { useState } from 'react'
 import { FormField } from '@/components/ui/FormField'
 import { useRegister } from '@/hooks/useAuth'
 
@@ -29,13 +30,37 @@ type FormData = z.infer<typeof schema>
 
 export default function RegisterPage() {
   const register = useRegister()
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
   const {
     register: field,
     handleSubmit,
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
-  const onSubmit = (data: FormData) => register.mutate(data)
+  const onSubmit = (data: FormData) => {
+    setErrorMsg(null)
+    register.mutate(data, {
+      onSuccess: () => setSuccess(true),
+      onError: (err: any) => {
+        setErrorMsg(err.response?.data?.message || 'Erro ao criar conta. Tenta novamente.')
+      },
+    })
+  }
+
+  if (success) {
+    return (
+      <div className="text-center card-elevated p-10">
+        <CheckCircle size={40} className="text-green-400 mx-auto mb-4" />
+        <h1 className="text-xl font-bold text-crime-text-primary mb-2">Conta criada!</h1>
+        <p className="text-sm text-crime-text-muted mb-2">
+          Enviámos um email de ativação para o teu endereço.
+        </p>
+        <p className="text-xs text-crime-text-faint mb-6">Confirma o email para ativares a tua conta. Verifica também a pasta de spam.</p>
+        <Link href="/auth/login" className="btn-secondary">Ir para o Login</Link>
+      </div>
+    )
+  }
 
   return (
     <div>

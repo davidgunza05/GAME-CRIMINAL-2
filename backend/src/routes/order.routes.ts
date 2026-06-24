@@ -29,6 +29,10 @@ router.post('/payments/stripe/create-intent', authenticate,
   orderController.createStripePaymentIntent)
 
 // Stripe webhook needs raw body
+router.post('/payments/stripe/confirm', authenticate,
+  validate(z.object({ paymentIntentId: z.string(), paymentId: z.string().uuid() })),
+  orderController.confirmStripePayment)
+
 router.post('/payments/stripe/webhook',
   express.raw({ type: 'application/json' }),
   orderController.stripeWebhook)

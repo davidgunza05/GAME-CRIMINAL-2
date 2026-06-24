@@ -17,14 +17,9 @@ const start = async () => {
   const httpServer = http.createServer(app)
   const io = setupSocketIO(httpServer)
   setIO(io)
-  console.log('🔌 Socket.io initialized')
 
   httpServer.listen(env.PORT, () => {
-    console.log(`\n🔍 Crime Game API`)
-    console.log(`   Mode:        ${env.NODE_ENV}`)
-    console.log(`   Port:        ${env.PORT}`)
-    console.log(`   Client URL:  ${env.CLIENT_URL}`)
-    console.log(`   API Base:    http://localhost:${env.PORT}/api\n`)
+    console.log(`🔍 Crime Game API — ${env.NODE_ENV} — http://localhost:${env.PORT}/api`)
   })
 }
 

@@ -13,6 +13,7 @@ export const createSession = async (req: Request, res: Response): Promise<void> 
     sendCreated(res, { session }, 'Sessão criada com sucesso')
   } catch (err: any) {
     if (err.message === 'CASE_NOT_FOUND') sendError(res, 'Caso não encontrado ou não publicado', 404)
+    else if (err.message === 'CASE_ACCESS_REQUIRED') sendError(res, 'Precisas de comprar este caso para criar uma sessão', 403)
     else throw err
   }
 }

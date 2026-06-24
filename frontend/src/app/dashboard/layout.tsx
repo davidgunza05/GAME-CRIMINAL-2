@@ -6,33 +6,40 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ShoppingBag, Gamepad2, Trophy,
-  Settings, LogOut, Shield, ChevronRight, Loader2, Package, User, MessageSquare, Award, BarChart2, BookOpen, ClipboardList
+  Settings, LogOut, Shield, ChevronRight, Loader2, Package, User,
+  MessageSquare, Award, BarChart2, BookOpen, ClipboardList,
 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useAuthStore } from '@/store/auth.store'
 import { useLogout } from '@/hooks/useAuth'
 import CartButton from '@/components/shop/CartButton'
 
-const navItems = [
-  { href: '/dashboard', label: 'Início', icon: LayoutDashboard },
-  { href: '/dashboard/cases', label: 'Casos', icon: ShoppingBag },
-  { href: '/dashboard/orders', label: 'Encomendas', icon: Package },
-  { href: '/dashboard/sessions', label: 'Sessões', icon: Gamepad2 },
-  { href: '/dashboard/leaderboard', label: 'Leaderboard', icon: Trophy },
-  { href: '/dashboard/profile', label: 'O Meu Perfil', icon: User },
+// ─── Navegação por role ───────────────────────────────────────────────────────
+
+const playerItems = [
+  { href: '/dashboard',             label: 'Início',          icon: LayoutDashboard },
+  { href: '/dashboard/cases',       label: 'Catálogo',        icon: ShoppingBag },
+  { href: '/dashboard/my-cases',    label: 'Os Meus Casos',   icon: BookOpen },
+  { href: '/dashboard/orders',      label: 'Encomendas',      icon: Package },
+  { href: '/dashboard/sessions',    label: 'Sessões',         icon: Gamepad2 },
+  { href: '/dashboard/leaderboard', label: 'Leaderboard',     icon: Trophy },
+  { href: '/dashboard/profile',     label: 'O Meu Perfil',    icon: User },
+  { href: '/dashboard/settings',    label: 'Definições',      icon: Settings },
+]
+
+const organizerExtra = [
   { href: '/dashboard/builder', label: 'Case Builder', icon: BookOpen },
-  { href: '/dashboard/settings', label: 'Definições', icon: Settings },
 ]
 
 const adminItems = [
-  { href: '/dashboard/admin', label: 'Utilizadores', icon: Shield },
-  { href: '/dashboard/admin/cases', label: 'Casos', icon: ShoppingBag },
-  { href: '/dashboard/admin/orders', label: 'Encomendas', icon: Package },
-  { href: '/dashboard/admin/sessions', label: 'Sessões', icon: Gamepad2 },
-  { href: '/dashboard/admin/badges', label: 'Badges', icon: Award },
-  { href: '/dashboard/admin/comms', label: 'Comunicações', icon: MessageSquare },
-  { href: '/dashboard/admin/analytics', label: 'Analytics', icon: BarChart2 },
-  { href: '/dashboard/admin/moderation', label: 'Moderação', icon: ClipboardList },
+  { href: '/dashboard/admin',              label: 'Utilizadores', icon: Shield },
+  { href: '/dashboard/admin/cases',        label: 'Casos',        icon: ShoppingBag },
+  { href: '/dashboard/admin/orders',       label: 'Encomendas',   icon: Package },
+  { href: '/dashboard/admin/sessions',     label: 'Sessões',      icon: Gamepad2 },
+  { href: '/dashboard/admin/badges',       label: 'Badges',       icon: Award },
+  { href: '/dashboard/admin/comms',        label: 'Comunicações', icon: MessageSquare },
+  { href: '/dashboard/admin/analytics',    label: 'Analytics',    icon: BarChart2 },
+  { href: '/dashboard/admin/moderation',   label: 'Moderação',    icon: ClipboardList },
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -41,13 +48,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
   const logout = useLogout()
 
+  // isLoading = ainda a hidratar — NÃO redirecionar ainda
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/auth/login')
+    if (isLoading) return
+    if (!isAuthenticated) { router.replace('/auth/login'); return }
+    // Guard de admin: bloquear /dashboard/admin/* para não-admins
+    if (pathname.startsWith('/dashboard/admin') && user?.role !== 'admin') {
+      router.replace('/dashboard')
     }
-  }, [isAuthenticated, isLoading, router])
+  }, [isAuthenticated, isLoading, pathname, user, router])
 
-  if (isLoading) {
+  // Bloquear render de páginas admin para não-admins (evita flash)
+  const isAdminRoute = pathname.startsWith('/dashboard/admin')
+  if (!isLoading && isAuthenticated && isAdminRoute && user?.role !== 'admin') {
+    return null
+  }
+
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen bg-crime-black flex items-center justify-center">
         <Loader2 size={32} className="text-crime-red animate-spin" />
@@ -55,20 +72,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     )
   }
 
-  if (!isAuthenticated) return null
+  const role = user?.role ?? 'player'
+
+  // Montar navegação principal conforme role
+  const mainNav = [
+    ...playerItems,
+    ...(role === 'organizer' || role === 'admin' ? organizerExtra : []),
+  ]
+
+  const isActive = (href: string) =>
+    href === '/dashboard' ? pathname === href : pathname.startsWith(href)
 
   return (
     <div className="min-h-screen bg-crime-black flex">
       {/* Sidebar */}
       <aside className="w-64 bg-crime-surface border-r border-crime-border flex flex-col shrink-0">
+
         {/* Logo */}
         <div className="p-6 border-b border-crime-border">
-          <div className="flex items-center justify-between w-full"><Link href="/dashboard" className="flex items-center gap-3">
-            <span className="text-xl">🔍</span>
-            <span className="font-mono text-xs tracking-[0.2em] uppercase text-crime-text-muted">
-              Crime Game
-            </span>
-          </Link>
+          <div className="flex items-center justify-between w-full">
+            <Link href="/dashboard" className="flex items-center gap-3">
+              <span className="text-xl">🔍</span>
+              <span className="font-mono text-xs tracking-[0.2em] uppercase text-crime-text-muted">
+                Crime Game
+              </span>
+            </Link>
+            <CartButton />
+          </div>
         </div>
 
         {/* User info */}
@@ -83,25 +113,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </p>
               <span className={clsx(
                 'badge text-[10px]',
-                user?.role === 'admin' && 'badge-admin',
-                user?.role === 'organizer' && 'badge-organizer',
-                user?.role === 'player' && 'badge-player',
+                role === 'admin'     && 'badge-admin',
+                role === 'organizer' && 'badge-organizer',
+                role === 'player'    && 'badge-player',
               )}>
-                {user?.role}
+                {role}
               </span>
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-3 space-y-0.5">
-          {navItems
-            .filter(item => {
-              if (item.href === '/dashboard/builder') return user?.role === 'admin' || user?.role === 'organizer'
-              return true
-            })
-            .map(({ href, label, icon: Icon }) => {
-            const active = pathname === href
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+          {mainNav.map(({ href, label, icon: Icon }) => {
+            const active = isActive(href)
             return (
               <Link
                 key={href}
@@ -121,7 +146,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
 
           {/* Admin section */}
-          {user?.role === 'admin' && (
+          {role === 'admin' && (
             <>
               <div className="pt-4 pb-1 px-3">
                 <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-crime-text-faint">

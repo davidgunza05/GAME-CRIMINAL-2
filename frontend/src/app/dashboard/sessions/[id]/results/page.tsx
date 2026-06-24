@@ -6,8 +6,8 @@ import Link from 'next/link'
 import { useSessionResults } from '@/hooks/useSession'
 import GameResults from '@/components/game/results/GameResults'
 
-export default function ResultsPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function ResultsPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const { data, isLoading } = useSessionResults(id)
 
   if (isLoading) return (

@@ -7,8 +7,6 @@ import { useAuthStore } from '@/store/auth.store'
 // ─── Register ─────────────────────────────────────────────────────────────────
 
 export const useRegister = () => {
-  const router = useRouter()
-
   return useMutation({
     mutationFn: async (data: {
       email: string
@@ -19,14 +17,8 @@ export const useRegister = () => {
       const res = await api.post('/auth/register', data)
       return res.data
     },
-    onSuccess: (data) => {
-      toast.success(data.message || 'Conta criada! Verifica o teu email.')
-      router.push('/auth/verify-email-sent')
-    },
-    onError: (err: any) => {
-      const msg = err.response?.data?.message || 'Erro ao criar conta'
-      toast.error(msg)
-    },
+    onSuccess: () => {},
+    onError: () => {},
   })
 }
 
@@ -47,9 +39,8 @@ export const useLogin = () => {
       toast.success(`Bem-vindo, Detetive ${user.username}!`)
       router.push('/dashboard')
     },
-    onError: (err: any) => {
-      const msg = err.response?.data?.message || 'Erro ao fazer login'
-      toast.error(msg)
+    onError: () => {
+      // Erro tratado inline na página de login
     },
   })
 }
@@ -77,21 +68,13 @@ export const useLogout = () => {
 // ─── Verify Email ─────────────────────────────────────────────────────────────
 
 export const useVerifyEmail = () => {
-  const router = useRouter()
-
   return useMutation({
     mutationFn: async (token: string) => {
       const res = await api.post('/auth/verify-email', { token })
       return res.data
     },
-    onSuccess: () => {
-      toast.success('Email verificado! Podes fazer login.')
-      router.push('/auth/login?verified=1')
-    },
-    onError: (err: any) => {
-      const msg = err.response?.data?.message || 'Erro ao verificar email'
-      toast.error(msg)
-    },
+    onSuccess: () => {},
+    onError: () => {},
   })
 }
 
@@ -103,11 +86,8 @@ export const useResendVerification = () => {
       const res = await api.post('/auth/resend-verification', { email })
       return res.data
     },
-    onSuccess: () => toast.success('Email de verificação enviado!'),
-    onError: (err: any) => {
-      const msg = err.response?.data?.message || 'Erro ao reenviar email'
-      toast.error(msg)
-    },
+    onSuccess: () => {},
+    onError: () => {},
   })
 }
 
@@ -115,33 +95,25 @@ export const useResendVerification = () => {
 
 export const useForgotPassword = () => {
   return useMutation({
-    mutationFn: async (email: string) => {
-      const res = await api.post('/auth/forgot-password', { email })
+    mutationFn: async (data: { email: string }) => {
+      const res = await api.post('/auth/forgot-password', data)
       return res.data
     },
-    onSuccess: (data) => toast.success(data.message),
-    onError: () => toast.error('Erro ao enviar email de recuperação'),
+    onSuccess: () => {},
+    onError: () => {},
   })
 }
 
 // ─── Reset Password ───────────────────────────────────────────────────────────
 
 export const useResetPassword = () => {
-  const router = useRouter()
-
   return useMutation({
     mutationFn: async (data: { token: string; password: string }) => {
       const res = await api.post('/auth/reset-password', data)
       return res.data
     },
-    onSuccess: () => {
-      toast.success('Password redefinida! Podes fazer login.')
-      router.push('/auth/login')
-    },
-    onError: (err: any) => {
-      const msg = err.response?.data?.message || 'Erro ao redefinir password'
-      toast.error(msg)
-    },
+    onSuccess: () => {},
+    onError: () => {},
   })
 }
 

@@ -24,11 +24,11 @@ const schema = z.object({
   coverImageUrl: z.string().url().optional().or(z.literal('')),
   tags: z.string().optional(),
 })
-
+ 
 type FormData = z.infer<typeof schema>
 
-export default function BuilderEditPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function BuilderEditPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const { data: submission } = useBuilderCase(id)
   const update = useUpdateBuilderCase(id)
 

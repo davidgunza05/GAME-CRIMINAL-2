@@ -17,7 +17,8 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
 
-  RESEND_API_KEY: z.string().default(''),
+  GMAIL_USER: z.string().email().optional(),
+  GMAIL_APP_PASSWORD: z.string().optional(),
   EMAIL_FROM: z.string().email().default('noreply@crimegame.com'),
   EMAIL_FROM_NAME: z.string().default('Crime Game'),
 

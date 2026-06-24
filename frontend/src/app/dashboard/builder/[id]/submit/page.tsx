@@ -7,8 +7,8 @@ import { useBuilderCase, useSubmitForReview } from '@/hooks/useBuilder'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 
-export default function BuilderSubmitPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function BuilderSubmitPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const { data: submission } = useBuilderCase(id)
   const submit = useSubmitForReview(id)
 

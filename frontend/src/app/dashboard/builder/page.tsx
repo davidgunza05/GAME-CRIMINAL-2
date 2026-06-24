@@ -20,6 +20,7 @@ export default function BuilderPage() {
   const [page, setPage] = useState(1)
   const { data, isLoading } = useMyBuilderCases(page)
   const deleteCase = useDeleteBuilderCase()
+  const submissions = data?.submissions ?? []
 
   return (
     <div className="p-8">
@@ -45,7 +46,7 @@ export default function BuilderPage() {
         <div className="flex justify-center py-20">
           <Loader2 size={28} className="text-crime-red animate-spin" />
         </div>
-      ) : data?.submissions?.length === 0 ? (
+      ) : submissions.length === 0 ? (
         <div className="card p-16 text-center">
           <span className="text-5xl mb-4 block">✏️</span>
           <h2 className="text-xl font-bold text-crime-text-primary mb-2">Nenhum caso criado</h2>
@@ -56,7 +57,7 @@ export default function BuilderPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {data.submissions.map((sub: any) => {
+          {submissions.map((sub: any) => {
             const cfg = STATUS_CONFIG[sub.status] ?? STATUS_CONFIG.draft
             const StatusIcon = cfg.icon
             const isEditable = ['draft', 'rejected'].includes(sub.status)

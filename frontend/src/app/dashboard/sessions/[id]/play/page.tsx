@@ -14,8 +14,8 @@ import EvidenceBoard from '@/components/game/board/EvidenceBoard'
 import MyCharacterCard from '@/components/game/character/MyCharacterCard'
 import GameChat from '@/components/game/GameChat'
 
-export default function PlayPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function PlayPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const router = useRouter()
   const { user } = useAuthStore()
 

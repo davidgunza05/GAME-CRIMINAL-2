@@ -20,9 +20,9 @@ export default function BuilderCaseLayout({
   params,
 }: {
   children: React.ReactNode
-  params: Promise<{ id: string }>
+  params: { id: string }
 }) {
-  const { id } = use(params)
+  const { id } = params
   const pathname = usePathname()
   const { data: submission, isLoading } = useBuilderCase(id)
 

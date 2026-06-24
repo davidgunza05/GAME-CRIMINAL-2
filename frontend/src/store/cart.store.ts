@@ -19,18 +19,21 @@ export const useCartStore = create<CartState>()(
 
       addItem: (item) => {
         set((state) => {
-          const exists = state.items.find(
+          // Cada encomenda é um caso — 1 caso por checkout (regra de negócio)
+          const isDuplicate = state.items.some(
             (i) => i.caseId === item.caseId && i.type === item.type
           )
-          if (exists) {
-            return {
-              items: state.items.map((i) =>
-                i.caseId === item.caseId && i.type === item.type
-                  ? { ...i, quantity: i.quantity + item.quantity }
-                  : i
-              ),
-            }
+          if (isDuplicate) return state
+
+          // Casos pagos: não permitir mais de 1 por carrinho
+          // (o utilizador faz checkout separado para cada caso)
+          const hasPaidItem = state.items.some((i) => (i.unitPrice ?? 0) > 0)
+          const isNewItemPaid = (item.unitPrice ?? 0) > 0
+          if (hasPaidItem && isNewItemPaid) {
+            // Substituir o item existente pelo novo
+            return { items: [item] }
           }
+
           return { items: [...state.items, item] }
         })
       },

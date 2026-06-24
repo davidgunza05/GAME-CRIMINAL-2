@@ -8,7 +8,11 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction
 ): void => {
-  console.error(`[ERROR] ${req.method} ${req.path}:`, err)
+  // Em produção só logar erros reais (não 4xx nem operacionais)
+  const isOperational = (err as any).isOperational
+  if (!isOperational) {
+    console.error(`[ERROR] ${req.method} ${req.path}:`, err.message)
+  }
 
   const message =
     env.NODE_ENV === 'development'

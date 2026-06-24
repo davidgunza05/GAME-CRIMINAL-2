@@ -1,19 +1,21 @@
 import Stripe from 'stripe'
 import { env } from '../config/env'
-import { updatePaymentStatus } from './order.service'
+import { updatePaymentStatus, promoteToOrganizer } from './order.service'
+import { grantAccessFromOrder } from './case-access.service'
 import { PaymentStatus } from '@prisma/client'
+import { prisma } from '../config/prisma'
 
-let stripe: Stripe | null = null
+let _stripe: Stripe | null = null
 
 const getStripe = (): Stripe => {
-  if (!stripe) {
+  if (!_stripe) {
     if (!env.STRIPE_SECRET_KEY) throw new Error('STRIPE_NOT_CONFIGURED')
-    stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' })
+    _stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' })
   }
-  return stripe
+  return _stripe
 }
 
-// ─── Create Payment Intent ────────────────────────────────────────────────────
+// ─── Criar Payment Intent ─────────────────────────────────────────────────────
 
 export const createStripePaymentIntent = async (
   orderId: string,
@@ -23,13 +25,12 @@ export const createStripePaymentIntent = async (
   customerEmail?: string
 ) => {
   const s = getStripe()
-
   const amountInCents = Math.round(amount * 100)
 
   const intent = await s.paymentIntents.create({
     amount: amountInCents,
     currency: currency.toLowerCase(),
-    receipt_email: customerEmail,
+    receipt_email: customerEmail ?? undefined,
     metadata: { orderId, paymentId },
     automatic_payment_methods: { enabled: true },
   })
@@ -42,14 +43,70 @@ export const createStripePaymentIntent = async (
   return { clientSecret: intent.client_secret, paymentIntentId: intent.id }
 }
 
-// ─── Handle Stripe Webhook ────────────────────────────────────────────────────
+// ─── Recuperar PaymentIntent existente ───────────────────────────────────────
 
-export const handleStripeWebhook = async (body: Buffer, signature: string) => {
+export const retrievePaymentIntent = async (paymentIntentId: string) => {
+  try {
+    const s = getStripe()
+    return await s.paymentIntents.retrieve(paymentIntentId)
+  } catch {
+    return null
+  }
+}
+
+// ─── Confirmar pagamento via PaymentIntent (sandbox + produção sem webhook) ───
+// Chamado pelo frontend após stripe.confirmPayment() ter sucesso.
+// Verifica o estado real no Stripe antes de conceder acesso — seguro e sem webhook.
+
+export const confirmStripePayment = async (
+  paymentIntentId: string,
+  paymentId: string
+) => {
   const s = getStripe()
 
+  // Buscar estado real do PaymentIntent diretamente ao Stripe
+  const intent = await s.paymentIntents.retrieve(paymentIntentId)
+
+  if (intent.status !== 'succeeded') {
+    throw new Error(`PAYMENT_NOT_SUCCEEDED:${intent.status}`)
+  }
+
+  const { orderId } = intent.metadata
+
+  // Atualizar payment record
+  await updatePaymentStatus(paymentId, PaymentStatus.paid, {
+    externalId: intent.id,
+    externalStatus: intent.status,
+    paidAt: new Date(),
+    providerResponse: { intent_id: intent.id, amount: intent.amount },
+  })
+
+  // Conceder acesso + promover utilizador
+  if (orderId) {
+    await grantAccessFromOrder(orderId)
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { userId: true },
+    })
+    if (order) await promoteToOrganizer(order.userId)
+  }
+
+  return { orderId, intentId: intent.id }
+}
+
+// ─── Webhook (produção com STRIPE_WEBHOOK_SECRET configurado) ─────────────────
+
+export const handleStripeWebhook = async (body: Buffer, signature: string) => {
+  if (!env.STRIPE_WEBHOOK_SECRET) {
+    // Sem webhook secret configurado — ignorar silenciosamente (sandbox)
+    return { received: true }
+  }
+
+  const s = getStripe()
   let event: Stripe.Event
+
   try {
-    event = s.webhooks.constructEvent(body, signature, env.STRIPE_WEBHOOK_SECRET!)
+    event = s.webhooks.constructEvent(body, signature, env.STRIPE_WEBHOOK_SECRET)
   } catch {
     throw new Error('WEBHOOK_SIGNATURE_INVALID')
   }
@@ -57,15 +114,28 @@ export const handleStripeWebhook = async (body: Buffer, signature: string) => {
   switch (event.type) {
     case 'payment_intent.succeeded': {
       const intent = event.data.object as Stripe.PaymentIntent
-      const { paymentId } = intent.metadata
+      const { paymentId, orderId } = intent.metadata
 
-      if (paymentId) {
-        await updatePaymentStatus(paymentId, PaymentStatus.paid, {
-          externalId: intent.id,
-          externalStatus: intent.status,
-          paidAt: new Date(),
-          providerResponse: { intent_id: intent.id, amount: intent.amount },
+      if (!paymentId) break
+
+      // Verificar se já foi processado (pode ter sido via confirmStripePayment)
+      const existing = await prisma.payment.findUnique({ where: { id: paymentId } })
+      if (existing?.status === PaymentStatus.paid) break
+
+      await updatePaymentStatus(paymentId, PaymentStatus.paid, {
+        externalId: intent.id,
+        externalStatus: intent.status,
+        paidAt: new Date(),
+        providerResponse: { intent_id: intent.id, amount: intent.amount },
+      })
+
+      if (orderId) {
+        await grantAccessFromOrder(orderId)
+        const order = await prisma.order.findUnique({
+          where: { id: orderId },
+          select: { userId: true },
         })
+        if (order) await promoteToOrganizer(order.userId)
       }
       break
     }
@@ -73,7 +143,6 @@ export const handleStripeWebhook = async (body: Buffer, signature: string) => {
     case 'payment_intent.payment_failed': {
       const intent = event.data.object as Stripe.PaymentIntent
       const { paymentId } = intent.metadata
-
       if (paymentId) {
         await updatePaymentStatus(paymentId, PaymentStatus.failed, {
           externalId: intent.id,

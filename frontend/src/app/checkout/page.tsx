@@ -44,7 +44,7 @@ export default function CheckoutPage() {
 
   const [couponCode, setCouponCode] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null)
-  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal' | 'manual'>('stripe')
+  // Método de pagamento escolhido na página /checkout/[orderId] após criar encomenda
 
   const hasPhysical = items.some((i) => i.type === 'physical')
   const shippingCost = hasPhysical ? 4.99 : 0
@@ -84,7 +84,6 @@ export default function CheckoutPage() {
   const onSubmit = async (shippingData?: ShippingForm) => {
     const payload: any = {
       items: items.map((i) => ({ caseId: i.caseId, type: i.type, quantity: i.quantity })),
-      paymentMethod,
       currency: 'EUR',
       ...(appliedCoupon && { couponCode: appliedCoupon.code }),
       ...(hasPhysical && shippingData && { shippingAddress: shippingData }),

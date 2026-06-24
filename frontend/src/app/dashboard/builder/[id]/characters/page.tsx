@@ -90,8 +90,9 @@ function CharacterForm({ initial, onSave, onCancel, loading }: {
   )
 }
 
-export default function BuilderCharactersPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function BuilderCharactersPage({ params }: { params: { id: string } }) {
+  const { id } = params
+
   const { data: submission } = useBuilderCase(id)
   const createCharacter = useCreateCharacter(id)
   const updateCharacter = useUpdateCharacter(id)
