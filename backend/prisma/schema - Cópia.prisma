@@ -1,0 +1,768 @@
+// ─── Prisma Schema — Crime Game Platform ───────────────────────────────────
+// Fase 1: Utilizadores, Autenticação, Perfis
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  admin
+  organizer
+  player
+}
+
+enum TokenType {
+  email_verification
+  password_reset
+  refresh
+}
+
+// ─── Users ──────────────────────────────────────────────────────────────────
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  username          String    @unique
+  passwordHash      String    @map("password_hash")
+  role              UserRole  @default(player)
+  displayName       String?   @map("display_name")
+  avatarUrl         String?   @map("avatar_url")
+  bio               String?
+  isEmailVerified   Boolean   @default(false) @map("is_email_verified")
+  isActive          Boolean   @default(true) @map("is_active")
+  lastLoginAt       DateTime? @map("last_login_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  tokens            UserToken[]
+  refreshTokens     RefreshToken[]
+  orders            Order[]
+  hostedSessions    GameSession[]  @relation("HostedSessions")
+  participations    Participant[]
+  evidenceUnlocks   EvidenceUnlock[]
+  xpEvents          XpEvent[]
+  playerProfile     PlayerProfile?
+  badges            UserBadge[]
+  commLogs          CommunicationLog[]
+  authoredCases     Case[]           @relation("AuthoredCases")
+  caseAccess        CaseAccess[]
+  submissions       CaseSubmission[] @relation("AuthoredSubmissions")
+  reviewedSubs      CaseSubmission[] @relation("ReviewedSubmissions")
+  moderationHistory ModerationHistory[]
+  caseReviews       CaseReview[]
+
+  @@map("users")
+}
+
+// ─── User Tokens (email verification, password reset) ───────────────────────
+
+model UserToken {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  token     String    @unique
+  type      TokenType
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("user_tokens")
+}
+
+// ─── Refresh Tokens ─────────────────────────────────────────────────────────
+
+// ════════════════════════════════════════════════════════════════════════════
+// FASE 2 — E-COMMERCE & CATÁLOGO
+// ════════════════════════════════════════════════════════════════════════════
+
+enum CaseDifficulty {
+  one
+  two
+  three
+  four
+  five
+}
+
+enum CaseType {
+  digital
+  physical
+  hybrid
+}
+
+enum OrderStatus {
+  pending
+  paid
+  processing
+  shipped
+  delivered
+  cancelled
+  refunded
+}
+
+enum OrderItemType {
+  digital
+  physical
+  event
+}
+
+enum PaymentStatus {
+  pending
+  processing
+  paid
+  failed
+  cancelled
+  refunded
+}
+
+enum PaymentProvider {
+  stripe
+  paypal
+  manual
+}
+
+enum ShippingStatus {
+  pending
+  preparing
+  shipped
+  delivered
+  returned
+}
+
+// ─── Cases ───────────────────────────────────────────────────────────────────
+
+model Case {
+  id               String         @id @default(uuid())
+  slug             String         @unique
+  title            String
+  description      String
+  shortDescription String?        @map("short_description")
+  difficulty       CaseDifficulty @default(three)
+  type             CaseType       @default(digital)
+  minPlayers       Int            @default(2) @map("min_players")
+  maxPlayers       Int            @default(8) @map("max_players")
+  estimatedMinutes Int            @default(120) @map("estimated_minutes")
+  priceDigital     Decimal?       @map("price_digital") @db.Decimal(10, 2)
+  pricePhysical    Decimal?       @map("price_physical") @db.Decimal(10, 2)
+  coverImageUrl    String?        @map("cover_image_url")
+  previewImages    String[]       @map("preview_images")
+  tags             String[]
+  authorId         String?        @map("author_id")
+  isPublished      Boolean        @default(false) @map("is_published")
+  isFeatured       Boolean        @default(false) @map("is_featured")
+  sortOrder        Int            @default(0) @map("sort_order")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  orderItems       OrderItem[]
+  stages           GameStage[]
+  author           User?          @relation("AuthoredCases", fields: [authorId], references: [id])
+  characters       Character[]
+  evidence         Evidence[]
+  caseAccess       CaseAccess[]
+  sessions         GameSession[]
+
+  submissions      CaseSubmission[]   // <-- adicionar
+  reviews          CaseReview[]       // <-- adicionar
+
+  @@index([slug])
+  @@index([isPublished])
+  @@map("cases")
+}
+
+// ─── Coupons ─────────────────────────────────────────────────────────────────
+
+model Coupon {
+  id              String    @id @default(uuid())
+  code            String    @unique
+  description     String?
+  discountPercent Decimal?  @map("discount_percent") @db.Decimal(5, 2)
+  discountFixed   Decimal?  @map("discount_fixed") @db.Decimal(10, 2)
+  maxUses         Int?      @map("max_uses")
+  usedCount       Int       @default(0) @map("used_count")
+  minOrderAmount  Decimal?  @map("min_order_amount") @db.Decimal(10, 2)
+  expiresAt       DateTime? @map("expires_at")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  orders          Order[]
+
+  @@index([code])
+  @@map("coupons")
+}
+
+// ─── Orders ──────────────────────────────────────────────────────────────────
+
+model Order {
+  id              String      @id @default(uuid())
+  orderNumber     String      @unique @map("order_number")
+  userId          String      @map("user_id")
+  status          OrderStatus @default(pending)
+  currency        String      @default("EUR")
+  subtotal        Decimal     @db.Decimal(10, 2)
+  discountAmount  Decimal     @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  shippingAmount  Decimal     @default(0) @map("shipping_amount") @db.Decimal(10, 2)
+  total           Decimal     @db.Decimal(10, 2)
+  couponId        String?     @map("coupon_id")
+  notes           String?
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  user            User        @relation(fields: [userId], references: [id])
+  coupon          Coupon?     @relation(fields: [couponId], references: [id])
+  items           OrderItem[]
+  payments        Payment[]
+  shipping        ShippingInfo?
+  caseAccess      CaseAccess[]
+
+  @@index([userId])
+  @@index([orderNumber])
+  @@index([status])
+  @@map("orders")
+}
+
+// ─── Order Items ──────────────────────────────────────────────────────────────
+
+model OrderItem {
+  id          String        @id @default(uuid())
+  orderId     String        @map("order_id")
+  caseId      String        @map("case_id")
+  type        OrderItemType
+  quantity    Int           @default(1)
+  unitPrice   Decimal       @map("unit_price") @db.Decimal(10, 2)
+  total       Decimal       @db.Decimal(10, 2)
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  order       Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  case        Case          @relation(fields: [caseId], references: [id])
+
+  @@index([orderId])
+  @@index([caseId])
+  @@map("order_items")
+}
+
+// ─── Payments ─────────────────────────────────────────────────────────────────
+
+model Payment {
+  id               String          @id @default(uuid())
+  orderId          String          @map("order_id")
+  provider         PaymentProvider
+  status           PaymentStatus   @default(pending)
+  amount           Decimal         @db.Decimal(10, 2)
+  currency         String          @default("EUR")
+  externalId       String?         @map("external_id")       // Stripe/PayPal ID
+  externalStatus   String?         @map("external_status")
+  providerResponse Json?           @map("provider_response")
+  refundedAmount   Decimal?        @map("refunded_amount") @db.Decimal(10, 2)
+  refundedAt       DateTime?       @map("refunded_at")
+  paidAt           DateTime?       @map("paid_at")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  order            Order           @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@index([externalId])
+  @@map("payments")
+}
+
+// ─── Shipping ─────────────────────────────────────────────────────────────────
+
+model ShippingInfo {
+  id              String         @id @default(uuid())
+  orderId         String         @unique @map("order_id")
+  recipientName   String         @map("recipient_name")
+  phone           String?
+  addressLine1    String         @map("address_line1")
+  addressLine2    String?        @map("address_line2")
+  city            String
+  state           String?
+  postalCode      String         @map("postal_code")
+  country         String         @default("PT")
+  status          ShippingStatus @default(pending)
+  carrier         String?
+  trackingNumber  String?        @map("tracking_number")
+  trackingUrl     String?        @map("tracking_url")
+  shippedAt       DateTime?      @map("shipped_at")
+  deliveredAt     DateTime?      @map("delivered_at")
+  estimatedDelivery DateTime?    @map("estimated_delivery")
+  notes           String?
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  order           Order          @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@map("shipping_info")
+}
+
+model RefreshToken {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  tokenHash   String    @unique @map("token_hash")
+  family      String    // Para rotação com detecção de reuso
+  isRevoked   Boolean   @default(false) @map("is_revoked")
+  expiresAt   DateTime  @map("expires_at")
+  userAgent   String?   @map("user_agent")
+  ipAddress   String?   @map("ip_address")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@index([userId])
+  @@index([family])
+  @@map("refresh_tokens")
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// FASE 3 — MOTOR DE JOGO & SESSÕES
+// ════════════════════════════════════════════════════════════════════════════
+
+enum SessionStatus {
+  pending
+  active
+  paused
+  completed
+  cancelled
+}
+
+enum SessionMode {
+  multiplayer
+  solo
+  hybrid
+}
+
+enum ParticipantStatus {
+  invited
+  confirmed
+  playing
+  left
+}
+
+enum EvidenceType {
+  document
+  photo
+  video
+  audio
+  object
+  qrcode
+}
+
+enum AccusationResult {
+  correct
+  incorrect
+  invalid
+}
+
+// ─── Game Stages ─────────────────────────────────────────────────────────────
+
+model GameStage {
+  id          String   @id @default(uuid())
+  caseId      String   @map("case_id")
+  order       Int
+  title       String
+  description String
+  isLast      Boolean  @default(false) @map("is_last")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  case        Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  evidence    Evidence[]
+  sessions    GameSession[] @relation("CurrentStage")
+
+  @@index([caseId])
+  @@map("game_stages")
+}
+
+// ─── Characters ───────────────────────────────────────────────────────────────
+
+model Character {
+  id             String   @id @default(uuid())
+  caseId         String   @map("case_id")
+  name           String
+  description    String
+  backstory      String
+  objectives     String
+  secrets        String
+  alibi          String
+  isKiller       Boolean  @default(false) @map("is_killer")
+  isDetective    Boolean  @default(false) @map("is_detective")
+  avatarUrl      String?  @map("avatar_url")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  case           Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  participants   Participant[]
+
+  accusations      Accusation[]
+
+  @@index([caseId])
+  @@map("characters")
+}
+
+// ─── Evidence ─────────────────────────────────────────────────────────────────
+
+model Evidence {
+  id           String       @id @default(uuid())
+  caseId       String       @map("case_id")
+  stageId      String?      @map("stage_id")
+  title        String
+  description  String
+  type         EvidenceType
+  contentUrl   String?      @map("content_url")
+  contentText  String?      @map("content_text")
+  isRedHerring Boolean      @default(false) @map("is_red_herring")
+  qrCode       String?      @map("qr_code")
+  sortOrder    Int          @default(0) @map("sort_order")
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  case         Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  stage        GameStage?   @relation(fields: [stageId], references: [id])
+  unlocks      EvidenceUnlock[]
+
+  @@index([caseId])
+  @@index([stageId])
+  @@map("evidence")
+}
+
+// ─── Game Sessions ────────────────────────────────────────────────────────────
+
+model GameSession {
+  id               String        @id @default(uuid())
+  caseId           String        @map("case_id")
+  hostId           String        @map("host_id")
+  status           SessionStatus @default(pending)
+  mode             SessionMode   @default(multiplayer)
+  accessCode       String        @unique @map("access_code")
+  currentStageId   String?       @map("current_stage_id")
+  scheduledAt      DateTime?     @map("scheduled_at")
+  startedAt        DateTime?     @map("started_at")
+  completedAt      DateTime?     @map("completed_at")
+  estimatedMinutes Int?          @map("estimated_minutes")
+  location         String?
+  meetingUrl       String?       @map("meeting_url")
+  notes            String?
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  case             Case          @relation(fields: [caseId], references: [id])
+  host             User          @relation("HostedSessions", fields: [hostId], references: [id])
+  currentStage     GameStage?    @relation("CurrentStage", fields: [currentStageId], references: [id])
+  participants     Participant[]
+  evidenceUnlocks  EvidenceUnlock[]
+  accusations      Accusation[]
+
+  @@index([accessCode])
+  @@index([hostId])
+  @@index([caseId])
+  @@map("game_sessions")
+}
+
+// ─── Participants ─────────────────────────────────────────────────────────────
+
+model Participant {
+  id            String            @id @default(uuid())
+  sessionId     String            @map("session_id")
+  userId        String?           @map("user_id")
+  characterId   String?           @map("character_id")
+  status        ParticipantStatus @default(invited)
+  guestName     String?           @map("guest_name")
+  guestEmail    String?           @map("guest_email")
+  guestPhone    String?           @map("guest_phone")
+  score         Int               @default(0)
+  joinedAt      DateTime?         @map("joined_at")
+  createdAt     DateTime          @default(now()) @map("created_at")
+
+  session       GameSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user          User?             @relation(fields: [userId], references: [id])
+  character     Character?        @relation(fields: [characterId], references: [id])
+  accusations   Accusation[]
+
+  @@unique([sessionId, userId])
+  @@index([sessionId])
+  @@map("participants")
+}
+
+// ─── Evidence Unlocks ─────────────────────────────────────────────────────────
+
+model EvidenceUnlock {
+  id            String      @id @default(uuid())
+  sessionId     String      @map("session_id")
+  evidenceId    String      @map("evidence_id")
+  unlockedById  String?     @map("unlocked_by_id")
+  unlockedAt    DateTime    @default(now()) @map("unlocked_at")
+
+  session       GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  evidence      Evidence    @relation(fields: [evidenceId], references: [id])
+  unlockedBy    User?       @relation(fields: [unlockedById], references: [id])
+
+  @@unique([sessionId, evidenceId])
+  @@index([sessionId])
+  @@map("evidence_unlocks")
+}
+
+// ─── Accusations ──────────────────────────────────────────────────────────────
+
+model Accusation {
+  id              String           @id @default(uuid())
+  sessionId       String           @map("session_id")
+  participantId   String           @map("participant_id")
+  suspectId       String           @map("suspect_id")
+  motive          String
+  method          String
+  evidenceCited   String[]         @map("evidence_cited")
+  result          AccusationResult @default(invalid)
+  feedbackText    String?          @map("feedback_text")
+  attemptNumber   Int              @default(1) @map("attempt_number")
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  session         GameSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  participant     Participant  @relation(fields: [participantId], references: [id])
+  suspect         Character    @relation(fields: [suspectId], references: [id])
+
+  @@index([sessionId])
+  @@index([participantId])
+  @@map("accusations")
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// FASE 5 — XP, BADGES, LEADERBOARDS, COMUNICAÇÕES
+// ════════════════════════════════════════════════════════════════════════════
+
+enum BadgeRarity {
+  common
+  uncommon
+  rare
+  epic
+  legendary
+}
+
+enum CommStatus {
+  queued
+  sent
+  failed
+  cancelled
+}
+
+enum CommChannel {
+  email
+  whatsapp
+}
+
+enum CommType {
+  session_invite
+  character_assigned
+  clue_unlocked
+  session_started
+  session_completed
+  accusation_result
+  welcome
+  password_reset
+}
+
+// ─── XP Ledger ────────────────────────────────────────────────────────────────
+
+model XpEvent {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  amount      Int
+  reason      String
+  sessionId   String?  @map("session_id")
+  caseId      String?  @map("case_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("xp_events")
+}
+
+// ─── Player Profile (XP totals, stats) ───────────────────────────────────────
+
+model PlayerProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  totalXp         Int      @default(0) @map("total_xp")
+  level           Int      @default(1)
+  sessionsPlayed  Int      @default(0) @map("sessions_played")
+  sessionsSolved  Int      @default(0) @map("sessions_solved")
+  totalAccusations Int     @default(0) @map("total_accusations")
+  correctFirst    Int      @default(0) @map("correct_first")   // solved on first attempt
+  evidenceFound   Int      @default(0) @map("evidence_found")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("player_profiles")
+}
+
+// ─── Badges ───────────────────────────────────────────────────────────────────
+
+model Badge {
+  id          String      @id @default(uuid())
+  slug        String      @unique
+  name        String
+  description String
+  icon        String      // emoji or URL
+  rarity      BadgeRarity @default(common)
+  criteria    Json        // { type, threshold, ... }
+  isActive    Boolean     @default(true) @map("is_active")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  awards      UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  badgeId   String   @map("badge_id")
+  awardedAt DateTime @default(now()) @map("awarded_at")
+  sessionId String?  @map("session_id")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge     Badge    @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@map("user_badges")
+}
+
+// ─── Communication Logs ───────────────────────────────────────────────────────
+
+model CommunicationLog {
+  id           String      @id @default(uuid())
+  userId       String?     @map("user_id")
+  sessionId    String?     @map("session_id")
+  channel      CommChannel
+  type         CommType
+  recipient    String      // email or phone
+  subject      String?
+  status       CommStatus  @default(queued)
+  providerId   String?     @map("provider_id")
+  errorMessage String?     @map("error_message")
+  sentAt       DateTime?   @map("sent_at")
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  user         User?       @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([status])
+  @@map("communication_logs")
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// FASE 7 — MARKETPLACE & CASE BUILDER
+// ════════════════════════════════════════════════════════════════════════════
+
+enum CaseSubmissionStatus {
+  draft
+  submitted
+  under_review
+  approved
+  rejected
+  published
+}
+
+enum ModerationAction {
+  submitted
+  approved
+  rejected
+  requested_changes
+  published
+  unpublished
+}
+
+// ─── Case Submission ──────────────────────────────────────────────────────────
+
+model CaseSubmission {
+  id              String                @id @default(uuid())
+  caseId          String                @unique @map("case_id")
+  authorId        String                @map("author_id")
+  status          CaseSubmissionStatus  @default(draft)
+  submittedAt     DateTime?             @map("submitted_at")
+  reviewedAt      DateTime?             @map("reviewed_at")
+  reviewedById    String?               @map("reviewed_by_id")
+  rejectionReason String?               @map("rejection_reason")
+  changeRequests  String?               @map("change_requests")
+  publishedAt     DateTime?             @map("published_at")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+
+  case            Case                  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  author          User                  @relation("AuthoredSubmissions", fields: [authorId], references: [id])
+  reviewedBy      User?                 @relation("ReviewedSubmissions", fields: [reviewedById], references: [id])
+  history         ModerationHistory[]
+
+  @@index([authorId])
+  @@index([status])
+  @@map("case_submissions")
+}
+
+// ─── Moderation History ───────────────────────────────────────────────────────
+
+model ModerationHistory {
+  id           String           @id @default(uuid())
+  submissionId String           @map("submission_id")
+  adminId      String           @map("admin_id")
+  action       ModerationAction
+  comment      String?
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  submission   CaseSubmission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  admin        User             @relation(fields: [adminId], references: [id])
+
+  @@index([submissionId])
+  @@map("moderation_history")
+}
+
+// ─── Case Reviews (player ratings) ───────────────────────────────────────────
+
+model CaseReview {
+  id        String   @id @default(uuid())
+  caseId    String   @map("case_id")
+  userId    String   @map("user_id")
+  rating    Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([caseId, userId])
+  @@index([caseId])
+  @@map("case_reviews")
+}
+
+// ─── Case Access (quem comprou e tem acesso ao caso) ─────────────────────────
+
+model CaseAccess {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  caseId    String   @map("case_id")
+  orderId   String?  @map("order_id")   // null = admin grant
+  grantedAt DateTime @default(now()) @map("granted_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  order     Order?   @relation(fields: [orderId], references: [id])
+
+  @@unique([userId, caseId])
+  @@index([userId])
+  @@index([caseId])
+  @@map("case_access")
+}

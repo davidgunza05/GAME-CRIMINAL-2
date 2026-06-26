@@ -10,10 +10,10 @@ async function main() {
   // Admin user
   const adminPassword = await bcrypt.hash('Admin@123456', 12)
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@crimegame.com' },
+    where: { email: 'admin@gmail.com' },
     update: {},
     create: {
-      email: 'admin@crimegame.com',
+      email: 'admin@gmail.com',
       username: 'admin',
       passwordHash: adminPassword,
       role: UserRole.admin,
@@ -25,10 +25,10 @@ async function main() {
   // Organizer user
   const organizerPassword = await bcrypt.hash('Organizer@123456', 12)
   const organizer = await prisma.user.upsert({
-    where: { email: 'organizer@crimegame.com' },
+    where: { email: 'organizer@gmail.com' },
     update: {},
     create: {
-      email: 'organizer@crimegame.com',
+      email: 'organizer@gmail.com',
       username: 'organizer_demo',
       passwordHash: organizerPassword,
       role: UserRole.organizer,
@@ -40,10 +40,10 @@ async function main() {
   // Player user
   const playerPassword = await bcrypt.hash('Player@123456', 12)
   const player = await prisma.user.upsert({
-    where: { email: 'player@crimegame.com' },
+    where: { email: 'player@gmail.com' },
     update: {},
     create: {
-      email: 'player@crimegame.com',
+      email: 'player@gmail.com',
       username: 'player_demo',
       passwordHash: playerPassword,
       role: UserRole.player,
@@ -311,9 +311,9 @@ Nota interna: O kit inclui compostos de arsénio para tratamento de pragas.',
   console.log('   🏅 Badges seeded')
 
   console.log('✅ Seed complete!')
-  console.log(`   👤 Admin:     admin@crimegame.com / Admin@123456`)
-  console.log(`   👤 Organizer: organizer@crimegame.com / Organizer@123456`)
-  console.log(`   👤 Player:    player@crimegame.com / Player@123456`)
+  console.log(`   👤 Admin:     admin@gmail.com / Admin@123456`)
+  console.log(`   👤 Organizer: organizer@gmail.com / Organizer@123456`)
+  console.log(`   👤 Player:    player@gmail.com / Player@123456`)
 }
 
 main()

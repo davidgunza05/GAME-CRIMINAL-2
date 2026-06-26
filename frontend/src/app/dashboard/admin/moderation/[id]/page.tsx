@@ -36,7 +36,6 @@ const AVAILABLE_ACTIONS: Record<string, ModerationAction[]> = {
 
 export default function ModerationDetailPage({ params }: { params: { id: string } }) {
   const { id } = params
-
   const { data: submission, isLoading } = useAdminSubmission(id)
   const moderate = useModerateSubmission(id)
 
@@ -55,6 +54,7 @@ export default function ModerationDetailPage({ params }: { params: { id: string 
   )
 
   const c = submission.case
+  const caseType = c.type as keyof typeof caseTypeMap
   const availableActions = AVAILABLE_ACTIONS[submission.status] ?? []
 
   const handleAction = async (action: ModerationAction) => {
@@ -95,10 +95,10 @@ export default function ModerationDetailPage({ params }: { params: { id: string 
                 <p className="text-xs text-crime-text-faint font-mono mb-3">{c.slug}</p>
                 <div className="flex flex-wrap gap-2">
                   <span className="badge bg-crime-muted text-crime-text-faint text-[10px]">
-                    {caseTypeMap[c.type as any]?.icon} {caseTypeMap[c.type as any]?.label}
+                    {caseTypeMap[caseType]?.icon} {caseTypeMap[caseType]?.label}
                   </span>
-                  <span className={clsx('text-xs', difficultyMap[c.difficulty as any]?.color)}>
-                    {'★'.repeat(difficultyMap[c.difficulty as any]?.stars ?? 3)}
+                  <span className={clsx('text-xs', difficultyMap[c.difficulty as keyof typeof difficultyMap]?.color)}>
+                    {'★'.repeat(difficultyMap[c.difficulty as keyof typeof difficultyMap]?.stars ?? 3)}
                   </span>
                   <span className="text-[10px] text-crime-text-faint flex items-center gap-1">
                     <Users size={10} /> {c.minPlayers}–{c.maxPlayers}

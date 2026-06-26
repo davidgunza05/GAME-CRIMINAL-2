@@ -7,6 +7,7 @@ import { Loader2, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { useCreateBuilderCase } from '@/hooks/useBuilder'
 import { FormField } from '@/components/ui/FormField'
+import MediaUpload from '@/components/ui/MediaUpload'
 
 const schema = z.object({
   title: z.string().min(3, 'Mínimo 3 caracteres').max(120).trim(),
@@ -132,7 +133,17 @@ export default function NewCasePage() {
               error={errors.pricePhysical?.message} {...register('pricePhysical')} />
           </div>
 
-          <FormField label="URL da Imagem de Capa (opcional)" placeholder="https://..."
+          <MediaUpload
+            label="Imagem de Capa (opcional)"
+            hint="JPG, PNG, WebP · máx. 10 MB"
+            context="cover"
+            accept="image"
+            value={watch('coverImageUrl') ?? ''}
+            onChange={(url) => setValue('coverImageUrl', url, { shouldDirty: true })}
+            previewType="image"
+          />
+          {/* Campo escondido para validação */}
+          <input type="hidden"
             error={errors.coverImageUrl?.message} {...register('coverImageUrl')} />
 
           <div>

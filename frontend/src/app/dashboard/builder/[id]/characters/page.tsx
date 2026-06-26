@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash2, ArrowRight, Loader2, CheckCircle, Skull, Search }
 import Link from 'next/link'
 import { clsx } from 'clsx'
 import { useBuilderCase, useCreateCharacter, useUpdateCharacter, useDeleteCharacter } from '@/hooks/useBuilder'
+import MediaUpload from '@/components/ui/MediaUpload'
 
 interface CharFormData {
   name: string; description: string; backstory: string
@@ -36,8 +37,15 @@ function CharacterForm({ initial, onSave, onCancel, loading }: {
           <input className="input" placeholder="Helena Voss" {...f('name')} />
         </div>
         <div>
-          <label className="label">URL Avatar (opcional)</label>
-          <input className="input" placeholder="https://..." {...f('avatarUrl')} />
+          <MediaUpload
+            label="Avatar (opcional)"
+            hint="JPG, PNG ou WebP · máx. 10 MB"
+            context="avatar"
+            accept="image"
+            value={form.avatarUrl ?? ''}
+            onChange={(url) => setForm(p => ({ ...p, avatarUrl: url }))}
+            previewType="image"
+          />
         </div>
       </div>
 
@@ -92,7 +100,6 @@ function CharacterForm({ initial, onSave, onCancel, loading }: {
 
 export default function BuilderCharactersPage({ params }: { params: { id: string } }) {
   const { id } = params
-
   const { data: submission } = useBuilderCase(id)
   const createCharacter = useCreateCharacter(id)
   const updateCharacter = useUpdateCharacter(id)

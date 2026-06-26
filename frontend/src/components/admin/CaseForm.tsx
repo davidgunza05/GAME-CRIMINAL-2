@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Loader2, Save, X } from 'lucide-react'
 import { FormField } from '@/components/ui/FormField'
+import MediaUpload from '@/components/ui/MediaUpload'
 
 const caseSchema = z.object({
   title: z.string().min(3, 'Mínimo 3 caracteres').max(120),
@@ -112,8 +113,15 @@ export function CaseForm({ defaultValues, onSubmit, isLoading, submitLabel = 'Gu
           </div>
 
           <div>
-            <label className="label">URL da Imagem de Capa</label>
-            <input {...register('coverImageUrl')} className="input w-full" placeholder="https://..." />
+            <MediaUpload
+              label="Imagem de Capa"
+              hint="JPG, PNG, WebP · máx. 10 MB"
+              context="cover"
+              accept="image"
+              value={watch('coverImageUrl') ?? ''}
+              onChange={(url) => setValue('coverImageUrl', url, { shouldDirty: true })}
+              previewType="image"
+            />
             {errors.coverImageUrl && <p className="text-xs text-red-400 mt-1">{errors.coverImageUrl.message}</p>}
           </div>
 

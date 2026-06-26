@@ -25,7 +25,7 @@ export const createCharacterSchema = z.object({
   alibi: z.string().min(5).max(1000).trim(),
   isKiller: z.boolean().default(false),
   isDetective: z.boolean().default(false),
-  avatarUrl: z.string().url().optional(),
+  avatarUrl: z.string().optional().transform(v => v || undefined).pipe(z.string().url().optional()),
 })
 
 export const updateCharacterSchema = createCharacterSchema.omit({ caseId: true }).partial()
@@ -34,15 +34,25 @@ export const updateCharacterSchema = createCharacterSchema.omit({ caseId: true }
 
 export const createEvidenceSchema = z.object({
   caseId: z.string().uuid(),
-  stageId: z.string().uuid().optional(),
+  // stageId: string vazia → undefined (frontend envia '' quando não selecionado)
+  stageId: z.string().uuid().optional().or(z.literal('')).transform(v => v || undefined),
   title: z.string().min(2).max(120).trim(),
   description: z.string().min(5).max(2000).trim(),
   type: z.nativeEnum(EvidenceType),
-  contentUrl: z.string().url().optional(),
-  contentText: z.string().max(5000).optional(),
+  // contentUrl: string vazia → undefined; URL válido → mantém
+  contentUrl: z.string().optional().transform(v => v || undefined).pipe(
+    z.string().url().optional()
+  ),
+  contentText: z.string().max(5000).optional().transform(v => v || undefined),
   isRedHerring: z.boolean().default(false),
-  qrCode: z.string().max(500).optional(),
-  sortOrder: z.coerce.number().int().default(0),
+  qrCode: z.string().max(500).optional().transform(v => v || undefined),
+  // sortOrder: string vazia, null ou undefined → 0
+  sortOrder: z.union([z.number(), z.string(), z.null(), z.undefined()])
+    .transform(v => {
+      const n = Number(v)
+      return isNaN(n) ? 0 : Math.floor(n)
+    })
+    .default(0),
 })
 
 export const updateEvidenceSchema = createEvidenceSchema.omit({ caseId: true }).partial()
@@ -55,7 +65,7 @@ export const createSessionSchema = z.object({
   scheduledAt: z.coerce.date().optional(),
   estimatedMinutes: z.coerce.number().int().min(15).max(600).optional(),
   location: z.string().max(300).optional(),
-  meetingUrl: z.string().url().optional(),
+  meetingUrl: z.string().optional().transform(v => v || undefined).pipe(z.string().url().optional()),
   notes: z.string().max(1000).optional(),
 })
 

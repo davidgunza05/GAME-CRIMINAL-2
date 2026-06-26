@@ -16,7 +16,6 @@ import { useAuthStore } from '@/store/auth.store'
 
 export default function CaseDetailPage({ params }: { params: { slug: string } }) {
   const { slug } = params
-
   const { data: c, isLoading } = useCaseBySlug(slug)
   const addItem = useCartStore((s) => s.addItem)
   const cartItems = useCartStore((s) => s.items)
@@ -67,7 +66,6 @@ export default function CaseDetailPage({ params }: { params: { slug: string } })
     </div>
   )
 
-  // c is checked above; cast difficulty to the map's keys to avoid implicit any index error
   const diff = difficultyMap[c.difficulty as keyof typeof difficultyMap]
   const typeInfo = caseTypeMap[c.type as keyof typeof caseTypeMap]
 

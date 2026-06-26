@@ -8,6 +8,7 @@ import { Loader2, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { useBuilderCase, useUpdateBuilderCase } from '@/hooks/useBuilder'
 import { FormField } from '@/components/ui/FormField'
+import MediaUpload from '@/components/ui/MediaUpload'
 
 const schema = z.object({
   title: z.string().min(3).max(120).trim(),
@@ -24,7 +25,7 @@ const schema = z.object({
   coverImageUrl: z.string().url().optional().or(z.literal('')),
   tags: z.string().optional(),
 })
- 
+
 type FormData = z.infer<typeof schema>
 
 export default function BuilderEditPage({ params }: { params: { id: string } }) {
@@ -145,7 +146,16 @@ export default function BuilderEditPage({ params }: { params: { id: string } }) 
             <FormField label="Preço Físico (€)" type="number" step="0.01" disabled={!isEditable} error={errors.pricePhysical?.message} {...register('pricePhysical')} />
           </div>
 
-          <FormField label="URL Imagem Capa" placeholder="https://..." disabled={!isEditable} error={errors.coverImageUrl?.message} {...register('coverImageUrl')} />
+          <MediaUpload
+            label="Imagem de Capa"
+            hint="JPG, PNG, WebP · máx. 10 MB"
+            context="cover"
+            accept="image"
+            value={watch('coverImageUrl') ?? ''}
+            onChange={(url) => setValue('coverImageUrl', url, { shouldDirty: true })}
+            previewType="image"
+            disabled={!isEditable}
+          />
 
           <div>
             <label className="label">Tags (vírgula)</label>

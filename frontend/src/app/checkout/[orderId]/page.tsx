@@ -201,6 +201,7 @@ function SuccessState({ order }: { order: any }) {
 
 export default function CheckoutPage({ params }: { params: { orderId: string } }) {
   const { orderId } = params
+   
   const { data: order, isLoading, refetch } = useMyOrder(orderId)
   const createIntent = useStripePaymentIntent()
   const hydrateAuth = useAuthStore((s) => s.hydrateFromServer)

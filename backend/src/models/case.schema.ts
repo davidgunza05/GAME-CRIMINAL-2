@@ -18,7 +18,7 @@ export const createCaseSchema = z.object({
   estimatedMinutes: z.coerce.number().int().min(15).max(600).default(120),
   priceDigital: z.coerce.number().min(0).optional(),
   pricePhysical: z.coerce.number().min(0).optional(),
-  coverImageUrl: z.string().url().optional(),
+  coverImageUrl: z.string().optional().transform(v => v || undefined).pipe(z.string().url().optional()),
   previewImages: z.array(z.string().url()).max(10).default([]),
   tags: z.array(z.string().trim()).max(20).default([]),
   isPublished: z.boolean().default(false),

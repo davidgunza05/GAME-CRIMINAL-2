@@ -97,7 +97,7 @@ export const updateShippingSchema = z.object({
   status: z.enum(['pending', 'preparing', 'shipped', 'delivered', 'returned']).optional(),
   carrier: z.string().max(100).optional(),
   trackingNumber: z.string().max(100).optional(),
-  trackingUrl: z.string().url().optional(),
+  trackingUrl: z.string().optional().transform(v => v || undefined).pipe(z.string().url().optional()),
   estimatedDelivery: z.coerce.date().optional(),
   notes: z.string().max(500).optional(),
 })

@@ -44,7 +44,7 @@ export default function CheckoutPage() {
 
   const [couponCode, setCouponCode] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null)
-  // Método de pagamento escolhido na página /checkout/[orderId] após criar encomenda
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal' | 'manual'>('stripe')
 
   const hasPhysical = items.some((i) => i.type === 'physical')
   const shippingCost = hasPhysical ? 4.99 : 0
